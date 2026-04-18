@@ -1,14 +1,30 @@
-﻿namespace JobCandidates.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace JobCandidates.DTOs
 {
-    public class CandidateDto
+    public class CreateCandidateDTO
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string PhoneNumber { get; set; }
-        public string Email { get; set; }
-        public string LinkedInUrl { get; set; }
-        public string GitHubUrl { get; set; }
-        public string BestTimeToCall { get; set; }
-        public string Comment { get; set; }
+        [Required]
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Email { get; set; } = string.Empty;
+
+        public string Phone { get; set; } = string.Empty;
+
+        public string Education { get; set; } = string.Empty;
+
+        public int ExperienceYears { get; set; }
+
+        public string Skills { get; set; } = string.Empty;
+    }
+
+    public class UpdateCandidateDTO
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Education { get; set; } = string.Empty;
+        public int ExperienceYears { get; set; }
+        public string Skills { get; set; } = string.Empty;
     }
 }

@@ -1,56 +1,77 @@
-﻿using AutoMapper;
-using JobCandidates.DTOs;
+﻿using JobCandidates.DTOs;
 using JobCandidates.Model;
 using JobCandidates.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JobCandidates.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class CandidatesController : ControllerBase
     {
-        private readonly ICandidateRepository _repository;
-        private readonly IMapper _mappper;
+        private readonly ICandidateRepository _candidateRepository;
 
-        public CandidatesController(ICandidateRepository repository, IMapper mapper)
+        public CandidatesController(ICandidateRepository candidateRepository)
         {
-            _repository = repository;
-            _mappper = mapper;
+            _candidateRepository = candidateRepository;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<List<Candidate>>> GetCandidates()
+        {
+            var candidates = await _candidateRepository.GetAllCandidatesAsync();
+            return Ok(candidates);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Candidate>> GetCandidate(int id)
+        {
+            var candidate = await _candidateRepository.GetCandidateByIdAsync(id);
+            if (candidate == null) return NotFound();
+            return Ok(candidate);
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpsertCandidate([FromBody] CandidateDto candidateDto)
+        public async Task<ActionResult<Candidate>> CreateCandidate(CreateCandidateDTO dto)
         {
-            try
+            var candidate = new Candidate
             {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
+                Name = dto.Name,
+                Email = dto.Email,
+                Phone = dto.Phone,
+                Education = dto.Education,
+                ExperienceYears = dto.ExperienceYears,
+                Skills = dto.Skills
+            };
 
-                var candidate = _mappper.Map<Candidate>(candidateDto);
-                var updateCandidate = await _repository.Upsert(candidate);
-
-                return Ok(_mappper.Map<CandidateDto>(updateCandidate));
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
-            }
+            var createdCandidate = await _candidateRepository.CreateCandidateAsync(candidate);
+            return CreatedAtAction(nameof(GetCandidate), new { id = createdCandidate.Id }, createdCandidate);
         }
 
-
-        [HttpGet]
-        public async Task<IActionResult> GetCandidateByEmail(string email)
+        [HttpPut("{id}")]
+        public async Task<ActionResult<Candidate>> UpdateCandidate(int id, UpdateCandidateDTO dto)
         {
-            var candidate = await _repository.GetCandidateByEmail(email);
-            if (candidate == null)
+            var candidate = new Candidate
             {
-                return NotFound();
-            }
+                Id = id,
+                Name = dto.Name,
+                Phone = dto.Phone,
+                Education = dto.Education,
+                ExperienceYears = dto.ExperienceYears,
+                Skills = dto.Skills
+            };
 
-            return Ok(_mappper.Map<CandidateDto>(candidate));
+            var updatedCandidate = await _candidateRepository.UpdateCandidateAsync(id, candidate);
+            if (updatedCandidate == null) return NotFound();
+            return Ok(updatedCandidate);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCandidate(int id)
+        {
+            var result = await _candidateRepository.DeleteCandidateAsync(id);
+            if (!result) return NotFound();
+            return NoContent();
         }
     }
 }

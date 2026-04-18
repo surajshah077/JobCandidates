@@ -5,10 +5,10 @@ namespace JobCandidates.DTOs
 {
     public class MappingProfile : Profile
     {
-        public MappingProfile() 
+        public MappingProfile()
         {
-            CreateMap<CandidateDto, Candidate>();
-            CreateMap<Candidate, CandidateDto>();
+            CreateMap<CreateCandidateDTO, Candidate>();
+            CreateMap<UpdateCandidateDTO, Candidate>();
         }
     }
 }

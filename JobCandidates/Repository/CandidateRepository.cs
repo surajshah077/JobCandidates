@@ -11,33 +11,48 @@ namespace JobCandidates.Repository
         {
             _context = context;
         }
-        public async Task<Candidate> GetCandidateByEmail(string email)
+
+        public async Task<List<Candidate>> GetAllCandidatesAsync()
         {
-           return await _context.Candidates.FirstOrDefaultAsync(x => x.Email == email);
+            return await _context.Candidates.ToListAsync();
         }
 
-        public async Task<Candidate> Upsert(Candidate candidate)
+        public async Task<Candidate?> GetCandidateByIdAsync(int id)
         {
-            var existingCandidate = await _context.Candidates.FindAsync(candidate.Email);
-            if (existingCandidate != null)
-            {
-                existingCandidate.FirstName = candidate.FirstName;
-                existingCandidate.LastName = candidate.LastName;
-                existingCandidate.PhoneNumber = candidate.PhoneNumber;
-                existingCandidate.LinkedInUrl = candidate.LinkedInUrl;
-                existingCandidate.GitHubUrl = candidate.GitHubUrl;
-                existingCandidate.BestTimeToCall = candidate.BestTimeToCall;
-                existingCandidate.Comment = candidate.Comment;
+            return await _context.Candidates.FindAsync(id);
+        }
 
-                _context.Candidates.Update(existingCandidate);
-            }
-            else
-            {
-                await _context.Candidates.AddAsync(candidate);
-            }
-
+        public async Task<Candidate> CreateCandidateAsync(Candidate candidate)
+        {
+            _context.Candidates.Add(candidate);
             await _context.SaveChangesAsync();
             return candidate;
+        }
+
+        public async Task<Candidate?> UpdateCandidateAsync(int id, Candidate candidate)
+        {
+            var existingCandidate = await _context.Candidates.FindAsync(id);
+            if (existingCandidate == null) return null;
+
+            existingCandidate.Name = candidate.Name;
+            existingCandidate.Email = candidate.Email;
+            existingCandidate.Phone = candidate.Phone;
+            existingCandidate.Education = candidate.Education;
+            existingCandidate.ExperienceYears = candidate.ExperienceYears;
+            existingCandidate.Skills = candidate.Skills;
+
+            await _context.SaveChangesAsync();
+            return existingCandidate;
+        }
+
+        public async Task<bool> DeleteCandidateAsync(int id)
+        {
+            var candidate = await _context.Candidates.FindAsync(id);
+            if (candidate == null) return false;
+
+            _context.Candidates.Remove(candidate);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

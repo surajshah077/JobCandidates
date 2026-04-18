@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using JobCandidates.Model;
+﻿using JobCandidates.Model;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobCandidates
 {
@@ -19,6 +19,14 @@ namespace JobCandidates
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Status).HasMaxLength(20);
+            });
+
+            modelBuilder.Entity<Candidate>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Skills).HasMaxLength(500);
             });
         }
     }

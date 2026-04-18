@@ -4,20 +4,22 @@ namespace JobCandidates.Model
 {
     public class Candidate
     {
-        [Required]
-        public string FirstName { get; set; }
-        [Required]
-        public string LastName { get; set; }
-
-        public string PhoneNumber { get; set; }
-        [Key]
-        [Required]
-        public string Email { get; set; }
-        public string BestTimeToCall { get; set; }
-        public string LinkedInUrl { get; set; }
-        public string GitHubUrl { get; set; }
+        public int Id { get; set; }
 
         [Required]
-        public string Comment { get; set; }
+        public string Name { get; set; } = string.Empty;
+
+        [Required]
+        public string Email { get; set; } = string.Empty;
+
+        public string Phone { get; set; } = string.Empty;
+
+        public string Education { get; set; } = string.Empty;
+
+        public int ExperienceYears { get; set; }
+
+        public string Skills { get; set; } = string.Empty;
+
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }
