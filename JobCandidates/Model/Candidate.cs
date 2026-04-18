@@ -21,5 +21,6 @@ namespace JobCandidates.Model
         public string Skills { get; set; } = string.Empty;
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+        public List<Application>? Applications { get; set; }
     }
 }

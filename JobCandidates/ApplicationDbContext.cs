@@ -11,6 +11,7 @@ namespace JobCandidates
 
         public DbSet<Job> Jobs { get; set; }
         public DbSet<Candidate> Candidates { get; set; }
+        public DbSet<Application> Applications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -27,6 +28,21 @@ namespace JobCandidates
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Skills).HasMaxLength(500);
+            });
+
+            modelBuilder.Entity<Application>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(e => e.Candidate)
+                    .WithMany(c => c.Applications)
+                    .HasForeignKey(e => e.CandidateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Job)
+                    .WithMany(j => j.Applications)
+                    .HasForeignKey(e => e.JobId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

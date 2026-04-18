@@ -22,5 +22,6 @@ namespace JobCandidates.Model
         public DateTime PostedDate { get; set; } = DateTime.UtcNow;
 
         public string PostedBy { get; set; } = string.Empty; // Recruiter email
+        public List<Application>? Applications { get; set; }
     }
 }
