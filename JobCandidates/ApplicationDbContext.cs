@@ -1,5 +1,5 @@
-﻿using JobCandidates.Model;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using JobCandidates.Model;
 
 namespace JobCandidates
 {
@@ -9,6 +9,17 @@ namespace JobCandidates
         {
         }
 
+        public DbSet<Job> Jobs { get; set; }
         public DbSet<Candidate> Candidates { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Job>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Status).HasMaxLength(20);
+            });
+        }
     }
 }
