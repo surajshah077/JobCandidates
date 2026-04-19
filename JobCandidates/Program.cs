@@ -15,6 +15,7 @@ builder.Services.AddScoped<ICandidateRepository, CandidateRepository>();
 builder.Services.AddScoped<IApplicationRepository, ApplicationRepository>();
 builder.Services.AddScoped<IInterviewRepository, InterviewRepository>();
 builder.Services.AddScoped<IRankingService, RankingService>();
+builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
