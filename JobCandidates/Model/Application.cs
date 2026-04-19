@@ -20,5 +20,6 @@ namespace JobCandidates.Model
 
         public Candidate? Candidate { get; set; }
         public Job? Job { get; set; }
+        public List<Interview>? Interviews { get; set; }
     }
 }

@@ -12,6 +12,7 @@ namespace JobCandidates
         public DbSet<Job> Jobs { get; set; }
         public DbSet<Candidate> Candidates { get; set; }
         public DbSet<Application> Applications { get; set; }
+        public DbSet<Interview> Interviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -42,6 +43,16 @@ namespace JobCandidates
                 entity.HasOne(e => e.Job)
                     .WithMany(j => j.Applications)
                     .HasForeignKey(e => e.JobId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Interview>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasOne(i => i.Application)
+                    .WithMany(a => a.Interviews)
+                    .HasForeignKey(i => i.ApplicationId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
