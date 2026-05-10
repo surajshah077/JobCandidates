@@ -57,10 +57,7 @@ namespace JobCandidates.Repository
         public async Task<bool> DeleteApplicationAsync(int id)
         {
             var application = await _context.Applications.FindAsync(id);
-            if (application == null)
-            {
-                return false;
-            }
+            if (application == null) return false;
 
             _context.Applications.Remove(application);
             await _context.SaveChangesAsync();
@@ -71,6 +68,18 @@ namespace JobCandidates.Repository
         {
             return await _context.Applications
                 .AnyAsync(a => a.CandidateId == candidateId && a.JobId == jobId);
+        }
+
+        public async Task<bool> HasApplicationsForCandidateAsync(int candidateId)
+        {
+            return await _context.Applications
+                .AnyAsync(a => a.CandidateId == candidateId);
+        }
+
+        public async Task<bool> HasApplicationsForJobAsync(int jobId)
+        {
+            return await _context.Applications
+                .AnyAsync(a => a.JobId == jobId);
         }
     }
 }

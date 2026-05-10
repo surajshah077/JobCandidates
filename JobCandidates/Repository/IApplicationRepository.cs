@@ -12,5 +12,9 @@ namespace JobCandidates.Repository
 
         
         Task<bool> ApplicationExistsAsync(int candidateId, int jobId);
+
+        
+        Task<bool> HasApplicationsForCandidateAsync(int candidateId);
+        Task<bool> HasApplicationsForJobAsync(int jobId);
     }
 }

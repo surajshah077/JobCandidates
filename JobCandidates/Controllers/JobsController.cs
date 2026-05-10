@@ -10,10 +10,14 @@ namespace JobCandidates.Controllers
     public class JobsController : ControllerBase
     {
         private readonly IJobRepository _jobRepository;
+        private readonly IApplicationRepository _applicationRepository;
 
-        public JobsController(IJobRepository jobRepository)
+        public JobsController(
+            IJobRepository jobRepository,
+            IApplicationRepository applicationRepository)
         {
             _jobRepository = jobRepository;
+            _applicationRepository = applicationRepository;
         }
 
         [HttpGet]
@@ -70,8 +74,16 @@ namespace JobCandidates.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
+            
+            var hasApplications = await _applicationRepository.HasApplicationsForJobAsync(id);
+            if (hasApplications)
+            {
+                return BadRequest("Cannot delete job with existing applications.");
+            }
+
             var result = await _jobRepository.DeleteJobAsync(id);
             if (!result) return NotFound();
+
             return NoContent();
         }
 

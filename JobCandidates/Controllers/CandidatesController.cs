@@ -10,10 +10,14 @@ namespace JobCandidates.Controllers
     public class CandidatesController : ControllerBase
     {
         private readonly ICandidateRepository _candidateRepository;
+        private readonly IApplicationRepository _applicationRepository;
 
-        public CandidatesController(ICandidateRepository candidateRepository)
+        public CandidatesController(
+            ICandidateRepository candidateRepository,
+            IApplicationRepository applicationRepository)
         {
             _candidateRepository = candidateRepository;
+            _applicationRepository = applicationRepository;
         }
 
         [HttpGet]
@@ -69,8 +73,16 @@ namespace JobCandidates.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCandidate(int id)
         {
+            
+            var hasApplications = await _applicationRepository.HasApplicationsForCandidateAsync(id);
+            if (hasApplications)
+            {
+                return BadRequest("Cannot delete candidate with existing applications.");
+            }
+
             var result = await _candidateRepository.DeleteCandidateAsync(id);
             if (!result) return NotFound();
+
             return NoContent();
         }
     }
