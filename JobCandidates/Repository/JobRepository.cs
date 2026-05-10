@@ -1,6 +1,5 @@
 ﻿using JobCandidates.Model;
 using Microsoft.EntityFrameworkCore;
-using JobCandidates.Repository;
 
 namespace JobCandidates.Repository
 {
@@ -40,6 +39,10 @@ namespace JobCandidates.Repository
             existingJob.Location = job.Location;
             existingJob.SalaryRange = job.SalaryRange;
             existingJob.RequiredSkills = job.RequiredSkills;
+
+            // Important: keep Status in sync with what the API accepts
+            // (UpdateJobDTO already restricts to 'Open' or 'Closed')
+            existingJob.Status = job.Status;
 
             await _context.SaveChangesAsync();
             return existingJob;
