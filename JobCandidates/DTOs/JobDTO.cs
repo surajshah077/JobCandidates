@@ -41,7 +41,7 @@ namespace JobCandidates.DTOs
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
 
-        // Only allow "Open" or "Closed"
+        
         [RegularExpression("Open|Closed", ErrorMessage = "Status must be either 'Open' or 'Closed'.")]
         public string Status { get; set; } = "Open";
     }

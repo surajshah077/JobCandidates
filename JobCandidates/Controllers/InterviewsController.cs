@@ -10,10 +10,17 @@ namespace JobCandidates.Controllers
     public class InterviewsController : ControllerBase
     {
         private readonly IInterviewRepository _interviewRepository;
+        private readonly IApplicationRepository _applicationRepository;
+        private readonly IJobRepository _jobRepository;
 
-        public InterviewsController(IInterviewRepository interviewRepository)
+        public InterviewsController(
+            IInterviewRepository interviewRepository,
+            IApplicationRepository applicationRepository,
+            IJobRepository jobRepository)
         {
             _interviewRepository = interviewRepository;
+            _applicationRepository = applicationRepository;
+            _jobRepository = jobRepository;
         }
 
         [HttpGet]
@@ -34,6 +41,36 @@ namespace JobCandidates.Controllers
         [HttpPost]
         public async Task<ActionResult<Interview>> CreateInterview(CreateInterviewDTO dto)
         {
+            
+            var application = await _applicationRepository.GetApplicationByIdAsync(dto.ApplicationId);
+            if (application == null)
+            {
+                return NotFound($"Application with id {dto.ApplicationId} was not found.");
+            }
+
+            
+            if (application.JobId <= 0)
+            {
+                return BadRequest("Application does not have a valid JobId.");
+            }
+
+            var job = await _jobRepository.GetJobByIdAsync(application.JobId);
+            if (job == null)
+            {
+                return NotFound($"Job with id {application.JobId} was not found.");
+            }
+
+            if (job.Status == "Closed")
+            {
+                return BadRequest("Cannot schedule an interview for a closed job.");
+            }
+
+           
+            if (dto.ScheduledDate < DateTime.UtcNow.AddDays(-1))
+            {
+                return BadRequest("ScheduledDate cannot be in the past.");
+            }
+
             var interview = new Interview
             {
                 ApplicationId = dto.ApplicationId,

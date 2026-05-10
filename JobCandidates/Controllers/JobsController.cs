@@ -41,7 +41,7 @@ namespace JobCandidates.Controllers
                 Location = dto.Location,
                 SalaryRange = dto.SalaryRange,
                 RequiredSkills = dto.RequiredSkills,
-                PostedBy = "admin@example.com" // Change this later
+                PostedBy = "admin@example.com" 
             };
 
             var createdJob = await _jobRepository.CreateJobAsync(job);

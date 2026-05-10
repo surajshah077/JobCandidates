@@ -32,7 +32,7 @@ namespace JobCandidates.Model
         public DateTime PostedDate { get; set; } = DateTime.UtcNow;
 
         [MaxLength(200)]
-        public string PostedBy { get; set; } = string.Empty; // Recruiter email
+        public string PostedBy { get; set; } = string.Empty; 
 
         public List<Application>? Applications { get; set; }
     }
