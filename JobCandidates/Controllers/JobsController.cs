@@ -53,7 +53,8 @@ namespace JobCandidates.Controllers
                 Location = dto.Location,
                 SalaryRange = dto.SalaryRange,
                 RequiredSkills = dto.RequiredSkills,
-                PostedBy = "admin@example.com" // TODO: replace with current user
+                // Use the user-provided email (or empty string if not provided)
+                PostedBy = dto.PostedBy ?? string.Empty
             };
 
             var createdJob = await _jobRepository.CreateJobAsync(job);

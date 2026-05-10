@@ -22,6 +22,11 @@ namespace JobCandidates.DTOs
         [Required]
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
+
+        // New: recruiter / user email who posts the job
+        [EmailAddress]
+        [MaxLength(200)]
+        public string? PostedBy { get; set; } = string.Empty;
     }
 
     public class UpdateJobDTO
@@ -41,7 +46,6 @@ namespace JobCandidates.DTOs
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
 
-        
         [RegularExpression("Open|Closed", ErrorMessage = "Status must be either 'Open' or 'Closed'.")]
         public string Status { get; set; } = "Open";
     }

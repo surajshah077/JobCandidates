@@ -23,16 +23,16 @@ namespace JobCandidates.Model
 
         [Required]
         [MaxLength(500)]
-        public string RequiredSkills { get; set; } = string.Empty; 
+        public string RequiredSkills { get; set; } = string.Empty; // Comma-separated skills
 
-        
         [RegularExpression("Open|Closed", ErrorMessage = "Status must be either 'Open' or 'Closed'.")]
         public string Status { get; set; } = "Open";
 
         public DateTime PostedDate { get; set; } = DateTime.UtcNow;
 
+        [EmailAddress]
         [MaxLength(200)]
-        public string PostedBy { get; set; } = string.Empty; 
+        public string PostedBy { get; set; } = string.Empty; // Recruiter email
 
         public List<Application>? Applications { get; set; }
     }
