@@ -22,23 +22,26 @@ namespace JobCandidates.Controllers
         [HttpGet("job/{jobId}")]
         public async Task<ActionResult<List<CandidateScoreDTO>>> GetRankedCandidatesForJob(int jobId)
         {
-            
             if (jobId <= 0)
             {
-                return BadRequest("jobId must be a positive integer.");
+                return BadRequest(new ApiError
+                {
+                    Code = "InvalidJobId",
+                    Message = "jobId must be a positive integer."
+                });
             }
 
-           
             var job = await _jobRepository.GetJobByIdAsync(jobId);
             if (job == null)
             {
-                return NotFound($"Job with id {jobId} was not found.");
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {jobId} was not found."
+                });
             }
 
-            
             var rankedCandidates = await _rankingService.GetCandidateScoresForJobAsync(jobId);
-
-            
             return Ok(rankedCandidates);
         }
     }

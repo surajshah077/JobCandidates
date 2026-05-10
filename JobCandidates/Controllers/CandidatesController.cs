@@ -31,7 +31,15 @@ namespace JobCandidates.Controllers
         public async Task<ActionResult<Candidate>> GetCandidate(int id)
         {
             var candidate = await _candidateRepository.GetCandidateByIdAsync(id);
-            if (candidate == null) return NotFound();
+            if (candidate == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "CandidateNotFound",
+                    Message = $"Candidate with id {id} was not found."
+                });
+            }
+
             return Ok(candidate);
         }
 
@@ -66,22 +74,40 @@ namespace JobCandidates.Controllers
             };
 
             var updatedCandidate = await _candidateRepository.UpdateCandidateAsync(id, candidate);
-            if (updatedCandidate == null) return NotFound();
+            if (updatedCandidate == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "CandidateNotFound",
+                    Message = $"Candidate with id {id} was not found."
+                });
+            }
+
             return Ok(updatedCandidate);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCandidate(int id)
         {
-            
             var hasApplications = await _applicationRepository.HasApplicationsForCandidateAsync(id);
             if (hasApplications)
             {
-                return BadRequest("Cannot delete candidate with existing applications.");
+                return BadRequest(new ApiError
+                {
+                    Code = "CandidateHasApplications",
+                    Message = "Cannot delete candidate with existing applications."
+                });
             }
 
             var result = await _candidateRepository.DeleteCandidateAsync(id);
-            if (!result) return NotFound();
+            if (!result)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "CandidateNotFound",
+                    Message = $"Candidate with id {id} was not found."
+                });
+            }
 
             return NoContent();
         }

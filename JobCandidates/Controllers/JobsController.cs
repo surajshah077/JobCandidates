@@ -31,7 +31,15 @@ namespace JobCandidates.Controllers
         public async Task<ActionResult<Job>> GetJob(int id)
         {
             var job = await _jobRepository.GetJobByIdAsync(id);
-            if (job == null) return NotFound();
+            if (job == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {id} was not found."
+                });
+            }
+
             return Ok(job);
         }
 
@@ -45,7 +53,7 @@ namespace JobCandidates.Controllers
                 Location = dto.Location,
                 SalaryRange = dto.SalaryRange,
                 RequiredSkills = dto.RequiredSkills,
-                PostedBy = "admin@example.com" 
+                PostedBy = "admin@example.com" // TODO: replace with current user
             };
 
             var createdJob = await _jobRepository.CreateJobAsync(job);
@@ -67,22 +75,40 @@ namespace JobCandidates.Controllers
             };
 
             var updatedJob = await _jobRepository.UpdateJobAsync(id, job);
-            if (updatedJob == null) return NotFound();
+            if (updatedJob == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {id} was not found."
+                });
+            }
+
             return Ok(updatedJob);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
-            
             var hasApplications = await _applicationRepository.HasApplicationsForJobAsync(id);
             if (hasApplications)
             {
-                return BadRequest("Cannot delete job with existing applications.");
+                return BadRequest(new ApiError
+                {
+                    Code = "JobHasApplications",
+                    Message = "Cannot delete job with existing applications."
+                });
             }
 
             var result = await _jobRepository.DeleteJobAsync(id);
-            if (!result) return NotFound();
+            if (!result)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {id} was not found."
+                });
+            }
 
             return NoContent();
         }
@@ -91,7 +117,15 @@ namespace JobCandidates.Controllers
         public async Task<ActionResult<Job>> CloseJob(int id)
         {
             var closedJob = await _jobRepository.CloseJobAsync(id);
-            if (closedJob == null) return NotFound();
+            if (closedJob == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {id} was not found."
+                });
+            }
+
             return Ok(closedJob);
         }
     }

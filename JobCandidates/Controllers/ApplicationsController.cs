@@ -34,38 +34,58 @@ namespace JobCandidates.Controllers
         public async Task<ActionResult<Application>> GetApplication(int id)
         {
             var application = await _applicationRepository.GetApplicationByIdAsync(id);
-            if (application == null) return NotFound();
+            if (application == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "ApplicationNotFound",
+                    Message = $"Application with id {id} was not found."
+                });
+            }
+
             return Ok(application);
         }
 
         [HttpPost]
         public async Task<ActionResult<Application>> CreateApplication(CreateApplicationDTO dto)
         {
-            // 1) Check candidate exists
             var candidate = await _candidateRepository.GetCandidateByIdAsync(dto.CandidateId);
             if (candidate == null)
             {
-                return NotFound($"Candidate with id {dto.CandidateId} was not found.");
+                return NotFound(new ApiError
+                {
+                    Code = "CandidateNotFound",
+                    Message = $"Candidate with id {dto.CandidateId} was not found."
+                });
             }
 
-            // 2) Check job exists
             var job = await _jobRepository.GetJobByIdAsync(dto.JobId);
             if (job == null)
             {
-                return NotFound($"Job with id {dto.JobId} was not found.");
+                return NotFound(new ApiError
+                {
+                    Code = "JobNotFound",
+                    Message = $"Job with id {dto.JobId} was not found."
+                });
             }
 
-            // 3) Prevent applying to closed jobs
             if (job.Status == "Closed")
             {
-                return BadRequest("Cannot create an application for a closed job.");
+                return BadRequest(new ApiError
+                {
+                    Code = "JobClosed",
+                    Message = "Cannot create an application for a closed job."
+                });
             }
 
-            // 4) Prevent duplicate applications
             var alreadyExists = await _applicationRepository.ApplicationExistsAsync(dto.CandidateId, dto.JobId);
             if (alreadyExists)
             {
-                return Conflict("An application for this candidate and job already exists.");
+                return Conflict(new ApiError
+                {
+                    Code = "ApplicationDuplicate",
+                    Message = "An application for this candidate and job already exists."
+                });
             }
 
             var application = new Application
@@ -84,7 +104,15 @@ namespace JobCandidates.Controllers
         public async Task<ActionResult<Application>> UpdateStatus(int id, UpdateApplicationStatusDTO dto)
         {
             var updated = await _applicationRepository.UpdateApplicationStatusAsync(id, dto.Status, dto.Notes);
-            if (updated == null) return NotFound();
+            if (updated == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "ApplicationNotFound",
+                    Message = $"Application with id {id} was not found."
+                });
+            }
+
             return Ok(updated);
         }
 
@@ -92,7 +120,15 @@ namespace JobCandidates.Controllers
         public async Task<IActionResult> DeleteApplication(int id)
         {
             var result = await _applicationRepository.DeleteApplicationAsync(id);
-            if (!result) return NotFound();
+            if (!result)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "ApplicationNotFound",
+                    Message = $"Application with id {id} was not found."
+                });
+            }
+
             return NoContent();
         }
     }
