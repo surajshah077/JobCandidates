@@ -73,6 +73,30 @@
         <div class="tab-content" id="mainTabsContent">
 
             <!-- Jobs tab -->
+            document.getElementById('jobCreateForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!requireRole(['Recruiter', 'Admin'], 'To create a job, you need Recruiter or Admin role.')) {
+            return;
+            }
+
+            try {
+            const body = {
+            title: document.getElementById('jobTitle').value,
+            description: document.getElementById('jobDescription').value,
+            location: document.getElementById('jobLocation').value,
+            salaryRange: document.getElementById('jobSalaryRange').value,
+            requiredSkills: document.getElementById('jobRequiredSkills').value
+            };
+            const job = await apiRequest('POST', '/jobs', body, true);
+            showMessage('success', `Job created with id ${job.id}.`);
+            loadJobs();
+            e.target.reset();
+            } catch (err) {
+            showMessage('danger', 'Failed to create job: ' + err.message);
+            }
+            });
+
             <div class="tab-pane fade show active" id="jobs-pane" role="tabpanel">
                 <div class="row">
                     <div class="col-md-5">
@@ -104,6 +128,24 @@
                                 </form>
                             </div>
                         </div>
+
+                        document.getElementById('jobCloseForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+
+                        if (!requireRole(['Recruiter', 'Admin'], 'To close a job, you need Recruiter or Admin role.')) {
+                        return;
+                        }
+
+                        try {
+                        const id = document.getElementById('jobCloseId').value;
+                        const job = await apiRequest('PUT', `/jobs/${id}/close`, null, true);
+                        showMessage('success', `Job ${job.id} closed.`);
+                        loadJobs();
+                        e.target.reset();
+                        } catch (err) {
+                        showMessage('danger', 'Failed to close job: ' + err.message);
+                        }
+                        });
 
                         <div class="card mb-3">
                             <div class="card-header">Close Job (requires Admin/Recruiter)</div>
@@ -312,31 +354,22 @@
 
             <!-- Authentication tab -->
             <div class="tab-pane fade" id="auth-pane" role="tabpanel">
-                <div class="row justify-content-center">
-                    <div class="col-md-7">
-                        <div class="card shadow-sm mb-3">
-                            <div class="card-header bg-primary text-white">Create account / Log in</div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header bg-primary text-white">Create Account</div>
                             <div class="card-body">
-                                <p class="text-muted small">
-                                    Register with your details and verify your email using OTP.
-                                    If your account already exists, the same flow logs you in.
-                                </p>
-
-                                <form id="registerLoginForm" class="mb-4">
-                                    <h5 class="mb-3">Basic Details</h5>
-
+                                <form id="registerForm">
                                     <div class="mb-3">
-                                        <label for="registerName" class="form-label">Full name</label>
-                                        <input type="text" class="form-control" id="registerName" placeholder="Enter your full name" required>
+                                        <label class="form-label" for="registerName">Full Name</label>
+                                        <input class="form-control" id="registerName" required>
                                     </div>
-
                                     <div class="mb-3">
-                                        <label for="registerAge" class="form-label">Age</label>
-                                        <input type="number" class="form-control" id="registerAge" min="18" max="80" required>
+                                        <label class="form-label" for="registerAge">Age</label>
+                                        <input class="form-control" id="registerAge" type="number" min="18" max="80" required>
                                     </div>
-
                                     <div class="mb-3">
-                                        <label for="registerGender" class="form-label">Gender</label>
+                                        <label class="form-label" for="registerGender">Gender</label>
                                         <select class="form-select" id="registerGender" required>
                                             <option value="">Select gender</option>
                                             <option value="Male">Male</option>
@@ -345,43 +378,61 @@
                                             <option value="PreferNotToSay">Prefer not to say</option>
                                         </select>
                                     </div>
-
                                     <div class="mb-3">
-                                        <label for="registerEmail" class="form-label">Email address</label>
-                                        <input type="email" class="form-control" id="registerEmail" placeholder="Enter your genuine email" required>
+                                        <label class="form-label" for="registerEmail">Email</label>
+                                        <input class="form-control" id="registerEmail" type="email" required>
                                     </div>
-
                                     <div class="mb-3">
-                                        <label for="registerRole" class="form-label">Account type</label>
+                                        <label class="form-label" for="registerRole">Role</label>
                                         <select class="form-select" id="registerRole" required>
-                                            <option value="User">Job seeker</option>
+                                            <option value="User">User</option>
                                             <option value="Recruiter">Recruiter</option>
                                         </select>
                                     </div>
-
-                                    <button class="btn btn-primary w-100" type="submit">
-                                        Send OTP
-                                    </button>
+                                    <button class="btn btn-primary w-100" type="submit">Create Account & Send OTP</button>
                                 </form>
 
                                 <hr>
 
-                                <form id="otpCompleteForm">
-                                    <h5 class="mb-3">Verify Email</h5>
-
+                                <form id="registerVerifyForm">
                                     <div class="mb-3">
-                                        <label for="otpCompleteEmail" class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="otpCompleteEmail" readonly>
+                                        <label class="form-label" for="registerVerifyEmail">Registered Email</label>
+                                        <input class="form-control" id="registerVerifyEmail" type="email" readonly>
                                     </div>
-
                                     <div class="mb-3">
-                                        <label for="otpCompleteCode" class="form-label">OTP code</label>
-                                        <input type="text" class="form-control" id="otpCompleteCode" placeholder="Enter OTP code" required>
+                                        <label class="form-label" for="registerOtpCode">OTP Code</label>
+                                        <input class="form-control" id="registerOtpCode" required>
                                     </div>
+                                    <button class="btn btn-success w-100" type="submit">Verify Account</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
 
-                                    <button class="btn btn-success w-100" type="submit">
-                                        Verify & Complete Registration
-                                    </button>
+                    <div class="col-md-6">
+                        <div class="card mb-3 shadow-sm">
+                            <div class="card-header bg-dark text-white">Login</div>
+                            <div class="card-body">
+                                <form id="loginRequestForm">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="loginEmail">Email</label>
+                                        <input class="form-control" id="loginEmail" type="email" required>
+                                    </div>
+                                    <button class="btn btn-dark w-100" type="submit">Send Login OTP</button>
+                                </form>
+
+                                <hr>
+
+                                <form id="loginVerifyForm">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="loginVerifyEmail">Email</label>
+                                        <input class="form-control" id="loginVerifyEmail" type="email" readonly>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label" for="loginOtpCode">OTP Code</label>
+                                        <input class="form-control" id="loginOtpCode" required>
+                                    </div>
+                                    <button class="btn btn-success w-100" type="submit">Login</button>
                                 </form>
                             </div>
                         </div>
@@ -461,9 +512,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const API_BASE = window.location.origin + "/api";
         let authToken = null;
-        let pendingRegistration = null;
 
         function parseJwt(token) {
             try {
@@ -473,38 +522,53 @@
                     return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
                 }).join(''));
                 return JSON.parse(jsonPayload);
-            } catch (_) {
+            } catch {
                 return null;
             }
         }
 
-        function showMessage(type, text) {
-            const container = document.getElementById('messages');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type} alert-dismissible fade show`;
-            alert.role = 'alert';
-            alert.innerHTML = `
-            <div>${text}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-            container.appendChild(alert);
+        function getCurrentUser() {
+            if (!authToken) return null;
+            const payload = parseJwt(authToken);
+            if (!payload) return null;
+
+            return {
+                email: payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "",
+                name: payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "",
+                role: payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || ""
+            };
+        }
+
+        function hasRole(...roles) {
+            const user = getCurrentUser();
+            return user && roles.includes(user.role);
+        }
+
+        function requireRole(roles, message) {
+            if (!authToken) {
+                showMessage('warning', 'Please login first.');
+                return false;
+            }
+            if (!hasRole(...roles)) {
+                showMessage('warning', message || `To do this, you need one of these roles: ${roles.join(', ')}.`);
+                return false;
+            }
+            return true;
         }
 
         function updateAuthStatus() {
-            const el = document.getElementById('authStatus');
+            const box = document.getElementById('authStatus');
             const details = document.getElementById('authDetails');
+            const user = getCurrentUser();
 
-            if (authToken) {
-                const payload = parseJwt(authToken) || {};
-                const email = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "";
-                const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
-                el.className = "alert alert-success d-flex justify-content-between align-items-center";
-                el.querySelector('strong').innerText = 'Authenticated.';
-                details.innerText = `Logged in as ${email} (${role}).`;
+            if (user) {
+                box.className = "alert alert-success d-flex justify-content-between align-items-center";
+                box.querySelector('strong').innerText = 'Authenticated.';
+                details.innerText = `Logged in as ${user.name} - ${user.email} (${user.role}).`;
             } else {
-                el.className = "alert alert-info d-flex justify-content-between align-items-center";
-                el.querySelector('strong').innerText = 'Not authenticated.';
-                details.innerText = 'Create an account or log in using email + OTP.';
+                box.className = "alert alert-info d-flex justify-content-between align-items-center";
+                box.querySelector('strong').innerText = 'Not authenticated.';
+                details.innerText = 'Create an account or login to access role-based features.';
             }
         }
 
@@ -514,39 +578,10 @@
             showMessage('info', 'Logged out.');
         });
 
-        async function apiRequest(method, path, body = null, requireAuth = false) {
-            const headers = { 'Content-Type': 'application/json' };
-            if (authToken) {
-                headers['Authorization'] = 'Bearer ' + authToken;
-            } else if (requireAuth) {
-                throw new Error('You must login first.');
-            }
-
-            const res = await fetch(API_BASE + path, {
-                method,
-                headers,
-                body: body ? JSON.stringify(body) : null
-            });
-
-            let data = null;
-            try {
-                data = await res.json();
-            } catch (_) { }
-
-            if (!res.ok) {
-                const msg = data && data.message ? data.message : `Request failed with status ${res.status}`;
-                throw new Error(msg);
-            }
-
-            return data;
-        }
-
-        // Step 1: Collect details and send OTP
-        document.getElementById('registerLoginForm').addEventListener('submit', async (e) => {
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             try {
-                pendingRegistration = {
+                const body = {
                     name: document.getElementById('registerName').value,
                     age: parseInt(document.getElementById('registerAge').value),
                     gender: document.getElementById('registerGender').value,
@@ -554,48 +589,60 @@
                     role: document.getElementById('registerRole').value
                 };
 
-                const resp = await apiRequest('POST', '/auth/request-otp', { email: pendingRegistration.email });
-
-                document.getElementById('otpCompleteEmail').value = pendingRegistration.email;
+                const resp = await apiRequest('POST', '/auth/register', body);
+                document.getElementById('registerVerifyEmail').value = body.email;
                 if (resp.code) {
-                    document.getElementById('otpCompleteCode').value = resp.code;
+                    document.getElementById('registerOtpCode').value = resp.code;
                 }
-
-                showMessage('success', 'OTP sent successfully.');
+                showMessage('success', resp.message || 'Account created. OTP sent.');
             } catch (err) {
-                showMessage('danger', 'Failed to send OTP: ' + err.message);
+                showMessage('danger', 'Registration failed: ' + err.message);
             }
         });
 
-        // Step 2: Verify OTP and save registration details
-        document.getElementById('otpCompleteForm').addEventListener('submit', async (e) => {
+        document.getElementById('registerVerifyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             try {
-                const email = document.getElementById('otpCompleteEmail').value;
-                const code = document.getElementById('otpCompleteCode').value;
+                const email = document.getElementById('registerVerifyEmail').value;
+                const code = document.getElementById('registerOtpCode').value;
 
-                const loginResp = await apiRequest('POST', '/auth/verify-otp', { email, code });
-                authToken = loginResp.token;
+                const resp = await apiRequest('POST', '/auth/verify-otp', { email, code });
+                authToken = resp.token;
                 updateAuthStatus();
-
-                if (pendingRegistration && pendingRegistration.email === email) {
-                    const profileResp = await apiRequest('POST', '/auth/register-details', {
-                        name: pendingRegistration.name,
-                        age: pendingRegistration.age,
-                        gender: pendingRegistration.gender,
-                        role: pendingRegistration.role
-                    }, true);
-
-                    authToken = profileResp.token;
-                    updateAuthStatus();
-                }
-
-                showMessage('success', 'Registration completed and logged in successfully.');
-                pendingRegistration = null;
-                document.getElementById('otpCompleteForm').reset();
+                showMessage('success', 'Account verified and logged in.');
             } catch (err) {
                 showMessage('danger', 'Verification failed: ' + err.message);
+            }
+        });
+
+        document.getElementById('loginRequestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const email = document.getElementById('loginEmail').value;
+                const resp = await apiRequest('POST', '/auth/request-login-otp', { email });
+
+                document.getElementById('loginVerifyEmail').value = email;
+                if (resp.code) {
+                    document.getElementById('loginOtpCode').value = resp.code;
+                }
+                showMessage('success', resp.message || 'Login OTP sent.');
+            } catch (err) {
+                showMessage('danger', 'Login OTP request failed: ' + err.message);
+            }
+        });
+
+        document.getElementById('loginVerifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const email = document.getElementById('loginVerifyEmail').value;
+                const code = document.getElementById('loginOtpCode').value;
+
+                const resp = await apiRequest('POST', '/auth/verify-otp', { email, code });
+                authToken = resp.token;
+                updateAuthStatus();
+                showMessage('success', 'Logged in successfully.');
+            } catch (err) {
+                showMessage('danger', 'Login failed: ' + err.message);
             }
         });
     </script>

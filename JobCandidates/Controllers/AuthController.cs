@@ -33,9 +33,9 @@ namespace JobCandidates.Controllers
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name ?? user.Email),
+                new Claim(ClaimTypes.Name, user.Name),
                 new Claim(ClaimTypes.Role, user.Role),
-                new Claim("gender", user.Gender ?? "PreferNotToSay"),
+                new Claim("gender", user.Gender),
                 new Claim("age", user.Age.ToString())
             };
 
@@ -53,40 +53,81 @@ namespace JobCandidates.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("request-otp")]
-        public async Task<ActionResult> RequestOtp(OtpRequestDTO dto)
+        [HttpPost("register")]
+        public async Task<ActionResult> Register(RegisterAccountDTO dto)
         {
-            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
-            if (user == null)
+            var existing = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (existing != null)
             {
-                user = new AppUser
+                return BadRequest(new ApiError
                 {
-                    Email = dto.Email,
-                    Name = "New User",
-                    Age = 18,
-                    Gender = "PreferNotToSay",
-                    Role = "User"
-                };
-                _db.Users.Add(user);
-                await _db.SaveChangesAsync();
+                    Code = "AccountExists",
+                    Message = "Account already exists. Please use login."
+                });
             }
+
+            var normalizedRole = dto.Role == "Recruiter" ? "Recruiter" : "User";
+
+            var user = new AppUser
+            {
+                Name = dto.Name,
+                Age = dto.Age,
+                Gender = dto.Gender,
+                Email = dto.Email,
+                Role = normalizedRole
+            };
+
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
 
             var code = new Random().Next(100000, 999999).ToString();
 
-            var otp = new OtpCode
+            _db.OtpCodes.Add(new OtpCode
             {
                 Email = dto.Email,
                 Code = code,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 Used = false
-            };
+            });
 
-            _db.OtpCodes.Add(otp);
             await _db.SaveChangesAsync();
 
             return Ok(new
             {
-                message = "OTP generated (in real app, it would be emailed).",
+                message = "Account created. OTP sent for verification.",
+                code
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("request-login-otp")]
+        public async Task<ActionResult> RequestLoginOtp(OtpRequestDTO dto)
+        {
+            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (user == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "UserNotFound",
+                    Message = "Account not found. Please create an account first."
+                });
+            }
+
+            var code = new Random().Next(100000, 999999).ToString();
+
+            _db.OtpCodes.Add(new OtpCode
+            {
+                Email = dto.Email,
+                Code = code,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                Used = false
+            });
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Login OTP sent.",
                 code
             });
         }
@@ -122,44 +163,6 @@ namespace JobCandidates.Controllers
                     Message = "User account not found."
                 });
             }
-
-            await _db.SaveChangesAsync();
-
-            var jwt = GenerateJwtToken(user);
-            return Ok(new LoginResponseDTO { Token = jwt });
-        }
-
-        [Authorize]
-        [HttpPost("register-details")]
-        public async Task<ActionResult<LoginResponseDTO>> RegisterDetails(RegisterDetailsDTO dto)
-        {
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-
-            if (string.IsNullOrWhiteSpace(email))
-            {
-                return Unauthorized(new ApiError
-                {
-                    Code = "InvalidToken",
-                    Message = "Email claim not found in token."
-                });
-            }
-
-            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == email);
-            if (user == null)
-            {
-                return NotFound(new ApiError
-                {
-                    Code = "UserNotFound",
-                    Message = "User account not found."
-                });
-            }
-
-            user.Name = dto.Name;
-            user.Age = dto.Age;
-            user.Gender = dto.Gender;
-
-            // Only allow User or Recruiter from self-registration
-            user.Role = dto.Role == "Recruiter" ? "Recruiter" : "User";
 
             await _db.SaveChangesAsync();
 

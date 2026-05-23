@@ -25,7 +25,7 @@ namespace JobCandidates.DTOs
         public string Code { get; set; } = string.Empty;
     }
 
-    public class RegisterDetailsDTO
+    public class RegisterAccountDTO
     {
         [Required]
         [MaxLength(200)]
@@ -37,6 +37,10 @@ namespace JobCandidates.DTOs
         [Required]
         [MaxLength(30)]
         public string Gender { get; set; } = "PreferNotToSay";
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(50)]
