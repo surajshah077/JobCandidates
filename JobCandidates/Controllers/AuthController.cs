@@ -1,5 +1,4 @@
-﻿using Google.Apis.Auth;
-using JobCandidates.DTOs;
+﻿using JobCandidates.DTOs;
 using JobCandidates.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,7 +23,7 @@ namespace JobCandidates.Controllers
             _config = config;
         }
 
-        private string GenerateJwtToken(string email, string role)
+        private string GenerateJwtToken(AppUser user)
         {
             var jwtSection = _config.GetSection("Jwt");
             var key = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
@@ -33,9 +32,11 @@ namespace JobCandidates.Controllers
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, email),
-                new Claim(ClaimTypes.Role, role)
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.Name ?? user.Email),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("gender", user.Gender ?? "PreferNotToSay"),
+                new Claim("age", user.Age.ToString())
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
@@ -45,67 +46,10 @@ namespace JobCandidates.Controllers
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        [AllowAnonymous]
-        [HttpPost("google-login")]
-        public async Task<ActionResult<LoginResponseDTO>> GoogleLogin(GoogleLoginRequestDTO dto)
-        {
-            var clientId = _config["Google:ClientId"];
-            if (string.IsNullOrWhiteSpace(clientId))
-            {
-                return StatusCode(500, new ApiError
-                {
-                    Code = "GoogleConfigMissing",
-                    Message = "Google ClientId is not configured."
-                });
-            }
-
-            GoogleJsonWebSignature.Payload payload;
-            try
-            {
-                payload = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken,
-                    new GoogleJsonWebSignature.ValidationSettings
-                    {
-                        Audience = new[] { clientId }
-                    });
-            }
-            catch (Exception)
-            {
-                return Unauthorized(new ApiError
-                {
-                    Code = "InvalidGoogleToken",
-                    Message = "Google token is invalid or expired."
-                });
-            }
-
-            var email = payload.Email;
-            var name = payload.Name ?? email;
-
-            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == email);
-            if (user == null)
-            {
-                user = new AppUser
-                {
-                    Email = email,
-                    Name = name,
-                    Role = "User"
-                };
-                _db.Users.Add(user);
-                await _db.SaveChangesAsync();
-            }
-            else if (string.IsNullOrWhiteSpace(user.Role))
-            {
-                user.Role = "User";
-                await _db.SaveChangesAsync();
-            }
-
-            var jwt = GenerateJwtToken(user.Email, user.Role);
-            return Ok(new LoginResponseDTO { Token = jwt });
         }
 
         [AllowAnonymous]
@@ -118,20 +62,16 @@ namespace JobCandidates.Controllers
                 user = new AppUser
                 {
                     Email = dto.Email,
-                    Name = dto.Email,
+                    Name = "New User",
+                    Age = 18,
+                    Gender = "PreferNotToSay",
                     Role = "User"
                 };
                 _db.Users.Add(user);
                 await _db.SaveChangesAsync();
             }
-            else if (string.IsNullOrWhiteSpace(user.Role))
-            {
-                user.Role = "User";
-                await _db.SaveChangesAsync();
-            }
 
-            var rng = new Random();
-            var code = rng.Next(100000, 999999).ToString();
+            var code = new Random().Next(100000, 999999).ToString();
 
             var otp = new OtpCode
             {
@@ -176,26 +116,56 @@ namespace JobCandidates.Controllers
             var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null)
             {
-                user = new AppUser
+                return NotFound(new ApiError
                 {
-                    Email = dto.Email,
-                    Name = dto.Email,
-                    Role = "User"
-                };
-                _db.Users.Add(user);
-            }
-            else if (string.IsNullOrWhiteSpace(user.Role))
-            {
-                user.Role = "User";
+                    Code = "UserNotFound",
+                    Message = "User account not found."
+                });
             }
 
             await _db.SaveChangesAsync();
 
-            var jwt = GenerateJwtToken(user.Email, user.Role);
+            var jwt = GenerateJwtToken(user);
             return Ok(new LoginResponseDTO { Token = jwt });
         }
 
-        // ===== Admin-only endpoints for managing users/roles =====
+        [Authorize]
+        [HttpPost("register-details")]
+        public async Task<ActionResult<LoginResponseDTO>> RegisterDetails(RegisterDetailsDTO dto)
+        {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Unauthorized(new ApiError
+                {
+                    Code = "InvalidToken",
+                    Message = "Email claim not found in token."
+                });
+            }
+
+            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "UserNotFound",
+                    Message = "User account not found."
+                });
+            }
+
+            user.Name = dto.Name;
+            user.Age = dto.Age;
+            user.Gender = dto.Gender;
+
+            // Only allow User or Recruiter from self-registration
+            user.Role = dto.Role == "Recruiter" ? "Recruiter" : "User";
+
+            await _db.SaveChangesAsync();
+
+            var jwt = GenerateJwtToken(user);
+            return Ok(new LoginResponseDTO { Token = jwt });
+        }
 
         [Authorize(Roles = "Admin")]
         [HttpGet("users")]
@@ -203,7 +173,16 @@ namespace JobCandidates.Controllers
         {
             var users = await _db.Users
                 .OrderBy(u => u.Email)
-                .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.CreatedAt })
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Email,
+                    u.Name,
+                    u.Age,
+                    u.Gender,
+                    u.Role,
+                    u.CreatedAt
+                })
                 .ToListAsync();
 
             return Ok(users);

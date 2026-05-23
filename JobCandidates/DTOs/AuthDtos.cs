@@ -2,12 +2,6 @@
 
 namespace JobCandidates.DTOs
 {
-    public class GoogleLoginRequestDTO
-    {
-        [Required]
-        public string IdToken { get; set; } = string.Empty;
-    }
-
     public class LoginResponseDTO
     {
         [Required]
@@ -29,6 +23,24 @@ namespace JobCandidates.DTOs
 
         [Required]
         public string Code { get; set; } = string.Empty;
+    }
+
+    public class RegisterDetailsDTO
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [Range(18, 80)]
+        public int Age { get; set; }
+
+        [Required]
+        [MaxLength(30)]
+        public string Gender { get; set; } = "PreferNotToSay";
+
+        [Required]
+        [MaxLength(50)]
+        public string Role { get; set; } = "User";
     }
 
     public class SetUserRoleDTO

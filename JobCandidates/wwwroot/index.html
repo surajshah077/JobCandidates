@@ -312,59 +312,112 @@
 
             <!-- Authentication tab -->
             <div class="tab-pane fade" id="auth-pane" role="tabpanel">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card mb-3">
-                            <div class="card-header">Google Login (ID token)</div>
+                <div class="row justify-content-center">
+                    <div class="col-md-7">
+                        <div class="card shadow-sm mb-3">
+                            <div class="card-header bg-primary text-white">Create account / Log in</div>
                             <div class="card-body">
-                                <p class="small text-muted">
-                                    In production, you use Google Identity Services button to get an ID token
-                                    in the browser, then send it to this API.
+                                <p class="text-muted small">
+                                    Register with your details and verify your email using OTP.
+                                    If your account already exists, the same flow logs you in.
                                 </p>
-                                <p class="small">
-                                    For now, paste a Google ID token here (for testing) and click Login.
-                                </p>
-                                <form id="googleLoginForm">
-                                    <div class="mb-2">
-                                        <label class="form-label">Google ID Token</label>
-                                        <textarea class="form-control" id="googleIdToken" rows="3" required></textarea>
-                                    </div>
-                                    <button class="btn btn-danger w-100" type="submit">Login with Google Token</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="col-md-6">
-                        <div class="card mb-3">
-                            <div class="card-header">OTP Login</div>
-                            <div class="card-body">
-                                <form id="otpRequestForm" class="mb-3">
-                                    <h6>Step 1: Request OTP</h6>
-                                    <div class="mb-2">
-                                        <label class="form-label">Email</label>
-                                        <input class="form-control" id="otpEmail" type="email" required>
+                                <form id="registerLoginForm" class="mb-4">
+                                    <h5 class="mb-3">Basic Details</h5>
+
+                                    <div class="mb-3">
+                                        <label for="registerName" class="form-label">Full name</label>
+                                        <input type="text" class="form-control" id="registerName" placeholder="Enter your full name" required>
                                     </div>
-                                    <button class="btn btn-outline-primary w-100" type="submit">Request OTP</button>
+
+                                    <div class="mb-3">
+                                        <label for="registerAge" class="form-label">Age</label>
+                                        <input type="number" class="form-control" id="registerAge" min="18" max="80" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="registerGender" class="form-label">Gender</label>
+                                        <select class="form-select" id="registerGender" required>
+                                            <option value="">Select gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                            <option value="PreferNotToSay">Prefer not to say</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="registerEmail" class="form-label">Email address</label>
+                                        <input type="email" class="form-control" id="registerEmail" placeholder="Enter your genuine email" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="registerRole" class="form-label">Account type</label>
+                                        <select class="form-select" id="registerRole" required>
+                                            <option value="User">Job seeker</option>
+                                            <option value="Recruiter">Recruiter</option>
+                                        </select>
+                                    </div>
+
+                                    <button class="btn btn-primary w-100" type="submit">
+                                        Send OTP
+                                    </button>
                                 </form>
 
-                                <form id="otpVerifyForm">
-                                    <h6>Step 2: Verify OTP</h6>
-                                    <div class="mb-2">
-                                        <label class="form-label">Email</label>
-                                        <input class="form-control" id="otpVerifyEmail" type="email" required>
+                                <hr>
+
+                                <form id="otpCompleteForm">
+                                    <h5 class="mb-3">Verify Email</h5>
+
+                                    <div class="mb-3">
+                                        <label for="otpCompleteEmail" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="otpCompleteEmail" readonly>
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label">OTP Code</label>
-                                        <input class="form-control" id="otpCode" required>
+
+                                    <div class="mb-3">
+                                        <label for="otpCompleteCode" class="form-label">OTP code</label>
+                                        <input type="text" class="form-control" id="otpCompleteCode" placeholder="Enter OTP code" required>
                                     </div>
-                                    <button class="btn btn-success w-100" type="submit">Verify OTP & Login</button>
+
+                                    <button class="btn btn-success w-100" type="submit">
+                                        Verify & Complete Registration
+                                    </button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Registration / profile completion -->
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header">Complete Registration (Profile & Role)</div>
+                        <div class="card-body">
+                            <p class="small text-muted">
+                                After you login with Email/OTP or Google, complete your profile here.
+                                This sets your display name and role (User or Recruiter).
+                            </p>
+                            <form id="registerDetailsForm">
+                                <div class="mb-2">
+                                    abel class="form-label">Full Name</label>
+                                    <input class="form-control" id="registerName" required>
+                                </div>
+                                <div class="mb-2">
+                                    abel class="form-label">Role</label>
+                                    <select class="form-select" id="registerRole" required>
+                                        <option value="User">Job Seeker (User)</option>
+                                        <option value="Recruiter">Recruiter</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary w-100" type="submit">Save & Update Account</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
             <!-- Admin tab: users & roles -->
             <div class="tab-pane fade" id="admin-pane" role="tabpanel">
@@ -408,15 +461,10 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // ==========================
-        // Basic settings
-        // ==========================
-        const API_BASE = window.location.origin + "/api"; // matches your backend origin[cite:95]
+        const API_BASE = window.location.origin + "/api";
         let authToken = null;
+        let pendingRegistration = null;
 
-        // ==========================
-        // Helper: decode JWT to show email/role
-        // ==========================
         function parseJwt(token) {
             try {
                 const base64Url = token.split('.')[1];
@@ -430,9 +478,6 @@
             }
         }
 
-        // ==========================
-        // Helper: show messages
-        // ==========================
         function showMessage(type, text) {
             const container = document.getElementById('messages');
             const alert = document.createElement('div');
@@ -440,48 +485,36 @@
             alert.role = 'alert';
             alert.innerHTML = `
             <div>${text}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
             container.appendChild(alert);
         }
 
-        // ==========================
-        // Helper: update auth status
-        // ==========================
         function updateAuthStatus() {
             const el = document.getElementById('authStatus');
             const details = document.getElementById('authDetails');
+
             if (authToken) {
-                el.classList.remove('alert-info');
-                el.classList.add('alert-success');
-
                 const payload = parseJwt(authToken) || {};
-                const email = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || payload.email || "";
-                const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || payload.role || "";
-
+                const email = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || "";
+                const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+                el.className = "alert alert-success d-flex justify-content-between align-items-center";
                 el.querySelector('strong').innerText = 'Authenticated.';
-                details.innerText = email
-                    ? `Logged in as ${email} (${role || "no role"}).`
-                    : 'Logged in.';
+                details.innerText = `Logged in as ${email} (${role}).`;
             } else {
-                el.classList.remove('alert-success');
-                el.classList.add('alert-info');
+                el.className = "alert alert-info d-flex justify-content-between align-items-center";
                 el.querySelector('strong').innerText = 'Not authenticated.';
-                details.innerText = 'Login with Google or OTP to create/update/delete jobs.';
+                details.innerText = 'Create an account or log in using email + OTP.';
             }
         }
 
         document.getElementById('btnClearToken').addEventListener('click', () => {
             authToken = null;
             updateAuthStatus();
-            showMessage('info', 'Cleared authentication token.');
+            showMessage('info', 'Logged out.');
         });
 
-        // ==========================
-        // Helper: send API request
-        // ==========================
         async function apiRequest(method, path, body = null, requireAuth = false) {
-            const url = API_BASE + path;
             const headers = { 'Content-Type': 'application/json' };
             if (authToken) {
                 headers['Authorization'] = 'Bearer ' + authToken;
@@ -489,7 +522,7 @@
                 throw new Error('You must login first.');
             }
 
-            const res = await fetch(url, {
+            const res = await fetch(API_BASE + path, {
                 method,
                 headers,
                 body: body ? JSON.stringify(body) : null
@@ -498,9 +531,7 @@
             let data = null;
             try {
                 data = await res.json();
-            } catch (_) {
-                // ignore if no JSON
-            }
+            } catch (_) { }
 
             if (!res.ok) {
                 const msg = data && data.message ? data.message : `Request failed with status ${res.status}`;
@@ -510,309 +541,63 @@
             return data;
         }
 
-        // ==========================
-        // Jobs tab handlers
-        // ==========================
-        async function loadJobs() {
-            try {
-                const jobs = await apiRequest('GET', '/jobs');
-                const tbody = document.querySelector('#jobsTable tbody');
-                tbody.innerHTML = '';
-                jobs.forEach(j => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                    <td>${j.id}</td>
-                    <td>${j.title}</td>
-                    <td>${j.status}</td>
-                    <td>${j.location}</td>
-                    <td>${j.postedBy || ''}</td>
-                `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load jobs: ' + err.message);
-            }
-        }
-
-        document.getElementById('btnRefreshJobs').addEventListener('click', loadJobs);
-
-        document.getElementById('jobCreateForm').addEventListener('submit', async (e) => {
+        // Step 1: Collect details and send OTP
+        document.getElementById('registerLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
             try {
-                const body = {
-                    title: document.getElementById('jobTitle').value,
-                    description: document.getElementById('jobDescription').value,
-                    location: document.getElementById('jobLocation').value,
-                    salaryRange: document.getElementById('jobSalaryRange').value,
-                    requiredSkills: document.getElementById('jobRequiredSkills').value
+                pendingRegistration = {
+                    name: document.getElementById('registerName').value,
+                    age: parseInt(document.getElementById('registerAge').value),
+                    gender: document.getElementById('registerGender').value,
+                    email: document.getElementById('registerEmail').value,
+                    role: document.getElementById('registerRole').value
                 };
-                const job = await apiRequest('POST', '/jobs', body, true);
-                showMessage('success', `Job created with id ${job.id}.`);
-                loadJobs();
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Failed to create job: ' + err.message);
-            }
-        });
 
-        document.getElementById('jobCloseForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const id = document.getElementById('jobCloseId').value;
-                const job = await apiRequest('PUT', `/jobs/${id}/close`, null, true);
-                showMessage('success', `Job ${job.id} closed.`);
-                loadJobs();
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Failed to close job: ' + err.message);
-            }
-        });
+                const resp = await apiRequest('POST', '/auth/request-otp', { email: pendingRegistration.email });
 
-        // ==========================
-        // Candidates tab handlers
-        // ==========================
-        async function loadCandidates() {
-            try {
-                const candidates = await apiRequest('GET', '/candidates');
-                const tbody = document.querySelector('#candidatesTable tbody');
-                tbody.innerHTML = '';
-                candidates.forEach(c => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                    <td>${c.id}</td>
-                    <td>${c.name}</td>
-                    <td>${c.email}</td>
-                    <td>${c.experienceYears}</td>
-                `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load candidates: ' + err.message);
-            }
-        }
-
-        document.getElementById('btnRefreshCandidates').addEventListener('click', loadCandidates);
-
-        document.getElementById('candidateCreateForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    name: document.getElementById('candidateName').value,
-                    email: document.getElementById('candidateEmail').value,
-                    phone: document.getElementById('candidatePhone').value,
-                    education: document.getElementById('candidateEducation').value,
-                    experienceYears: parseInt(document.getElementById('candidateExperience').value || '0'),
-                    skills: document.getElementById('candidateSkills').value
-                };
-                const candidate = await apiRequest('POST', '/candidates', body);
-                showMessage('success', `Candidate created with id ${candidate.id}.`);
-                loadCandidates();
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Failed to create candidate: ' + err.message);
-            }
-        });
-
-        // ==========================
-        // Applications tab handlers
-        // ==========================
-        async function loadApplications() {
-            try {
-                const apps = await apiRequest('GET', '/applications');
-                const tbody = document.querySelector('#applicationsTable tbody');
-                tbody.innerHTML = '';
-                apps.forEach(a => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                    <td>${a.id}</td>
-                    <td>${a.candidateId}</td>
-                    <td>${a.jobId}</td>
-                    <td>${a.status}</td>
-                `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load applications: ' + err.message);
-            }
-        }
-
-        document.getElementById('btnRefreshApplications').addEventListener('click', loadApplications);
-
-        document.getElementById('applicationCreateForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    candidateId: parseInt(document.getElementById('applicationCandidateId').value),
-                    jobId: parseInt(document.getElementById('applicationJobId').value),
-                    notes: document.getElementById('applicationNotes').value
-                };
-                const app = await apiRequest('POST', '/applications', body);
-                showMessage('success', `Application created with id ${app.id}.`);
-                loadApplications();
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Failed to create application: ' + err.message);
-            }
-        });
-
-        // ==========================
-        // Interviews tab handlers
-        // ==========================
-        async function loadInterviews() {
-            try {
-                const interviews = await apiRequest('GET', '/interviews');
-                const tbody = document.querySelector('#interviewsTable tbody');
-                tbody.innerHTML = '';
-                interviews.forEach(i => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                    <td>${i.id}</td>
-                    <td>${i.applicationId}</td>
-                    <td>${i.scheduledDate}</td>
-                    <td>${i.feedback}</td>
-                `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load interviews: ' + err.message);
-            }
-        }
-
-        document.getElementById('btnRefreshInterviews').addEventListener('click', loadInterviews);
-
-        document.getElementById('interviewCreateForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    applicationId: parseInt(document.getElementById('interviewApplicationId').value),
-                    scheduledDate: document.getElementById('interviewScheduledDate').value,
-                    interviewerName: document.getElementById('interviewerName').value,
-                    locationOrLink: document.getElementById('interviewLocation').value
-                };
-                const interview = await apiRequest('POST', '/interviews', body);
-                showMessage('success', `Interview created with id ${interview.id}.`);
-                loadInterviews();
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Failed to create interview: ' + err.message);
-            }
-        });
-
-        // ==========================
-        // Auth tab handlers
-        // ==========================
-
-        // Google login: send ID token to /api/auth/google-login
-        document.getElementById('googleLoginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const idToken = document.getElementById('googleIdToken').value;
-                const resp = await apiRequest('POST', '/auth/google-login', { idToken });
-                authToken = resp.token;
-                updateAuthStatus();
-                showMessage('success', 'Logged in with Google.');
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Google login failed: ' + err.message);
-            }
-        });
-
-        // OTP request (Register / Login start)
-        document.getElementById('otpRequestForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const email = document.getElementById('otpEmail').value;
-                const resp = await apiRequest('POST', '/auth/request-otp', { email });
-
-                // Auto-fill verify form so you just click Verify:
-                document.getElementById('otpVerifyEmail').value = email;
+                document.getElementById('otpCompleteEmail').value = pendingRegistration.email;
                 if (resp.code) {
-                    document.getElementById('otpCode').value = resp.code;
+                    document.getElementById('otpCompleteCode').value = resp.code;
                 }
 
-                showMessage('success', 'OTP requested: ' + (resp.message || 'Use the pre-filled code for testing.'));
+                showMessage('success', 'OTP sent successfully.');
             } catch (err) {
-                showMessage('danger', 'OTP request failed: ' + err.message);
+                showMessage('danger', 'Failed to send OTP: ' + err.message);
             }
         });
 
-        // OTP verify
-        document.getElementById('otpVerifyForm').addEventListener('submit', async (e) => {
+        // Step 2: Verify OTP and save registration details
+        document.getElementById('otpCompleteForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+
             try {
-                const email = document.getElementById('otpVerifyEmail').value;
-                const code = document.getElementById('otpCode').value;
-                const resp = await apiRequest('POST', '/auth/verify-otp', { email, code });
-                authToken = resp.token;
+                const email = document.getElementById('otpCompleteEmail').value;
+                const code = document.getElementById('otpCompleteCode').value;
+
+                const loginResp = await apiRequest('POST', '/auth/verify-otp', { email, code });
+                authToken = loginResp.token;
                 updateAuthStatus();
-                showMessage('success', 'Logged in with OTP.');
-                e.target.reset();
+
+                if (pendingRegistration && pendingRegistration.email === email) {
+                    const profileResp = await apiRequest('POST', '/auth/register-details', {
+                        name: pendingRegistration.name,
+                        age: pendingRegistration.age,
+                        gender: pendingRegistration.gender,
+                        role: pendingRegistration.role
+                    }, true);
+
+                    authToken = profileResp.token;
+                    updateAuthStatus();
+                }
+
+                showMessage('success', 'Registration completed and logged in successfully.');
+                pendingRegistration = null;
+                document.getElementById('otpCompleteForm').reset();
             } catch (err) {
-                showMessage('danger', 'OTP verify failed: ' + err.message);
+                showMessage('danger', 'Verification failed: ' + err.message);
             }
         });
-
-        // ==========================
-        // Admin tab handlers – Users & Roles
-        // ==========================
-        async function loadUsers() {
-            try {
-                const users = await apiRequest('GET', '/auth/users', null, true);
-                const tbody = document.querySelector('#usersTable tbody');
-                tbody.innerHTML = '';
-                users.forEach(u => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                    <td>${u.id}</td>
-                    <td>${u.email}</td>
-                    <td>${u.name || ''}</td>
-                    <td>${u.role}</td>
-                    <td>
-                        <select class="form-select form-select-sm user-role-select" data-user-id="${u.id}">
-                            <option value="User" ${u.role === 'User' ? 'selected' : ''}>User</option>
-                            <option value="Recruiter" ${u.role === 'Recruiter' ? 'selected' : ''}>Recruiter</option>
-                            <option value="Admin" ${u.role === 'Admin' ? 'selected' : ''}>Admin</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-secondary user-role-save" data-user-id="${u.id}">
-                            Save
-                        </button>
-                    </td>
-                `;
-                    tbody.appendChild(tr);
-                });
-
-                // Attach click handlers for save buttons
-                document.querySelectorAll('.user-role-save').forEach(btn => {
-                    btn.addEventListener('click', async (e) => {
-                        const userId = e.target.getAttribute('data-user-id');
-                        const select = document.querySelector(`.user-role-select[data-user-id="${userId}"]`);
-                        const newRole = select.value;
-                        try {
-                            await apiRequest('PUT', `/auth/users/${userId}/role`, { role: newRole }, true);
-                            showMessage('success', `Role updated to ${newRole} for user ${userId}.`);
-                            loadUsers();
-                        } catch (err) {
-                            showMessage('danger', 'Failed to update role: ' + err.message);
-                        }
-                    });
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load users: ' + err.message);
-            }
-        }
-
-        document.getElementById('btnRefreshUsers').addEventListener('click', loadUsers);
-
-        // ==========================
-        // Initial load
-        // ==========================
-        updateAuthStatus();
-        loadJobs();
-        loadCandidates();
-        loadApplications();
-        loadInterviews();
     </script>
 
 </body>
