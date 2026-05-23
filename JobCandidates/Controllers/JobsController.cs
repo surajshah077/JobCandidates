@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using JobCandidates.DTOs;
 using JobCandidates.Repository;
 using JobCandidates.Model;
+using System.Security.Claims;
 
 namespace JobCandidates.Controllers
 {
@@ -43,9 +45,14 @@ namespace JobCandidates.Controllers
             return Ok(job);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Job>> CreateJob(CreateJobDTO dto)
         {
+            var email = User.FindFirst(ClaimTypes.Email)?.Value
+                        ?? User.Identity?.Name
+                        ?? string.Empty;
+
             var job = new Job
             {
                 Title = dto.Title,
@@ -53,14 +60,14 @@ namespace JobCandidates.Controllers
                 Location = dto.Location,
                 SalaryRange = dto.SalaryRange,
                 RequiredSkills = dto.RequiredSkills,
-                // Use the user-provided email (or empty string if not provided)
-                PostedBy = dto.PostedBy ?? string.Empty
+                PostedBy = email
             };
 
             var createdJob = await _jobRepository.CreateJobAsync(job);
             return CreatedAtAction(nameof(GetJob), new { id = createdJob.Id }, createdJob);
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult<Job>> UpdateJob(int id, UpdateJobDTO dto)
         {
@@ -88,6 +95,7 @@ namespace JobCandidates.Controllers
             return Ok(updatedJob);
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
@@ -114,6 +122,7 @@ namespace JobCandidates.Controllers
             return NoContent();
         }
 
+        [Authorize]
         [HttpPut("{id}/close")]
         public async Task<ActionResult<Job>> CloseJob(int id)
         {

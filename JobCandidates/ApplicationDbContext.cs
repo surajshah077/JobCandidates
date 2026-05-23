@@ -13,6 +13,8 @@ namespace JobCandidates
         public DbSet<Candidate> Candidates { get; set; }
         public DbSet<Application> Applications { get; set; }
         public DbSet<Interview> Interviews { get; set; }
+        public DbSet<AppUser> Users { get; set; }
+        public DbSet<OtpCode> OtpCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -54,6 +56,18 @@ namespace JobCandidates
                     .WithMany(a => a.Interviews)
                     .HasForeignKey(i => i.ApplicationId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<AppUser>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Email).IsUnique();
+            });
+
+            modelBuilder.Entity<OtpCode>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.Email, e.Code });
             });
         }
     }

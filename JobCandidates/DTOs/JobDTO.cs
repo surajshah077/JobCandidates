@@ -22,11 +22,6 @@ namespace JobCandidates.DTOs
         [Required]
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
-
-        // New: recruiter / user email who posts the job
-        [EmailAddress]
-        [MaxLength(200)]
-        public string? PostedBy { get; set; } = string.Empty;
     }
 
     public class UpdateJobDTO
