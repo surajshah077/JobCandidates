@@ -62,6 +62,10 @@ namespace JobCandidates
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Email).IsUnique();
+                entity.Property(e => e.Role)
+                      .IsRequired()
+                      .HasMaxLength(50)
+                      .HasDefaultValue("User");
             });
 
             modelBuilder.Entity<OtpCode>(entity =>

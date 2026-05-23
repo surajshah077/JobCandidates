@@ -30,4 +30,10 @@ namespace JobCandidates.DTOs
         [Required]
         public string Code { get; set; } = string.Empty;
     }
+
+    public class SetUserRoleDTO
+    {
+        [Required]
+        public string Role { get; set; } = "User";
+    }
 }

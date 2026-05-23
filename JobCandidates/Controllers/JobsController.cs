@@ -45,7 +45,7 @@ namespace JobCandidates.Controllers
             return Ok(job);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpPost]
         public async Task<ActionResult<Job>> CreateJob(CreateJobDTO dto)
         {
@@ -67,7 +67,7 @@ namespace JobCandidates.Controllers
             return CreatedAtAction(nameof(GetJob), new { id = createdJob.Id }, createdJob);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpPut("{id}")]
         public async Task<ActionResult<Job>> UpdateJob(int id, UpdateJobDTO dto)
         {
@@ -95,7 +95,7 @@ namespace JobCandidates.Controllers
             return Ok(updatedJob);
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
@@ -122,7 +122,7 @@ namespace JobCandidates.Controllers
             return NoContent();
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpPut("{id}/close")]
         public async Task<ActionResult<Job>> CloseJob(int id)
         {

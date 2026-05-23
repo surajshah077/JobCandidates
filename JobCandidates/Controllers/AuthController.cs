@@ -24,7 +24,7 @@ namespace JobCandidates.Controllers
             _config = config;
         }
 
-        private string GenerateJwtToken(string email)
+        private string GenerateJwtToken(string email, string role)
         {
             var jwtSection = _config.GetSection("Jwt");
             var key = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
@@ -34,7 +34,8 @@ namespace JobCandidates.Controllers
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, email)
+                new Claim(ClaimTypes.Name, email),
+                new Claim(ClaimTypes.Role, role)
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
@@ -91,13 +92,19 @@ namespace JobCandidates.Controllers
                 user = new AppUser
                 {
                     Email = email,
-                    Name = name
+                    Name = name,
+                    Role = "User"
                 };
                 _db.Users.Add(user);
                 await _db.SaveChangesAsync();
             }
+            else if (string.IsNullOrWhiteSpace(user.Role))
+            {
+                user.Role = "User";
+                await _db.SaveChangesAsync();
+            }
 
-            var jwt = GenerateJwtToken(email);
+            var jwt = GenerateJwtToken(user.Email, user.Role);
             return Ok(new LoginResponseDTO { Token = jwt });
         }
 
@@ -105,21 +112,26 @@ namespace JobCandidates.Controllers
         [HttpPost("request-otp")]
         public async Task<ActionResult> RequestOtp(OtpRequestDTO dto)
         {
-            // Ensure user exists (auto-register similar to Google)
             var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null)
             {
                 user = new AppUser
                 {
                     Email = dto.Email,
-                    Name = dto.Email
+                    Name = dto.Email,
+                    Role = "User"
                 };
                 _db.Users.Add(user);
                 await _db.SaveChangesAsync();
             }
+            else if (string.IsNullOrWhiteSpace(user.Role))
+            {
+                user.Role = "User";
+                await _db.SaveChangesAsync();
+            }
 
             var rng = new Random();
-            var code = rng.Next(100000, 999999).ToString(); // 6 digits
+            var code = rng.Next(100000, 999999).ToString();
 
             var otp = new OtpCode
             {
@@ -132,8 +144,6 @@ namespace JobCandidates.Controllers
             _db.OtpCodes.Add(otp);
             await _db.SaveChangesAsync();
 
-            // TODO: send 'code' via email (SMTP, SendGrid, etc.)
-            // For now, return it in the response for testing (do NOT do this in production).
             return Ok(new
             {
                 message = "OTP generated (in real app, it would be emailed).",
@@ -162,10 +172,61 @@ namespace JobCandidates.Controllers
             }
 
             otp.Used = true;
+
+            var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (user == null)
+            {
+                user = new AppUser
+                {
+                    Email = dto.Email,
+                    Name = dto.Email,
+                    Role = "User"
+                };
+                _db.Users.Add(user);
+            }
+            else if (string.IsNullOrWhiteSpace(user.Role))
+            {
+                user.Role = "User";
+            }
+
             await _db.SaveChangesAsync();
 
-            var jwt = GenerateJwtToken(dto.Email);
+            var jwt = GenerateJwtToken(user.Email, user.Role);
             return Ok(new LoginResponseDTO { Token = jwt });
+        }
+
+        // ===== Admin-only endpoints for managing users/roles =====
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("users")]
+        public async Task<ActionResult<List<object>>> GetUsers()
+        {
+            var users = await _db.Users
+                .OrderBy(u => u.Email)
+                .Select(u => new { u.Id, u.Email, u.Name, u.Role, u.CreatedAt })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("users/{id}/role")]
+        public async Task<IActionResult> SetUserRole(int id, SetUserRoleDTO dto)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null)
+            {
+                return NotFound(new ApiError
+                {
+                    Code = "UserNotFound",
+                    Message = $"User with id {id} was not found."
+                });
+            }
+
+            user.Role = dto.Role;
+            await _db.SaveChangesAsync();
+
+            return NoContent();
         }
     }
 }
