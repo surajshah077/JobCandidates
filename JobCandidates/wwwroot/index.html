@@ -717,13 +717,20 @@
             }
         });
 
-        // OTP request
+        // OTP request (Register / Login start)
         document.getElementById('otpRequestForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
                 const email = document.getElementById('otpEmail').value;
                 const resp = await apiRequest('POST', '/auth/request-otp', { email });
-                showMessage('success', 'OTP requested: ' + (resp.message || 'Check response body in dev tools.'));
+
+                // Auto-fill verify form so you just click Verify:
+                document.getElementById('otpVerifyEmail').value = email;
+                if (resp.code) {
+                    document.getElementById('otpCode').value = resp.code;
+                }
+
+                showMessage('success', 'OTP requested: ' + (resp.message || 'Use the pre-filled code for testing.'));
             } catch (err) {
                 showMessage('danger', 'OTP request failed: ' + err.message);
             }
