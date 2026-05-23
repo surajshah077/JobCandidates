@@ -55,7 +55,7 @@
             </div>
             <button class="btn btn-sm btn-outline-secondary" id="btnClearToken">Logout</button>
         </div>
-
+        <button class="btn btn-sm btn-outline-secondary d-none" id="btnClearToken">Logout</button>
         <!-- Tabs -->
         <ul class="nav nav-tabs mb-3" id="mainTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -549,27 +549,25 @@
         }
 
         function updateAuthStatus() {
-            const authStatus = document.getElementById('authStatus');
-            const authDetails = document.getElementById('authDetails');
-            const statusTitle = authStatus.querySelector('strong');
-            const user = getCurrentUser();
+            const el = document.getElementById('authStatus');
+            const details = document.getElementById('authDetails');
+            const btnLogout = document.getElementById('btnClearToken');
 
-            if (user) {
-                authStatus.className = 'alert alert-success d-flex justify-content-between align-items-center';
-                statusTitle.innerText = 'Authenticated.';
-                authDetails.innerText = `Logged in as ${user.name} - ${user.email} (${user.role}).`;
-            } else {
-                authStatus.className = 'alert alert-info d-flex justify-content-between align-items-center';
-                statusTitle.innerText = 'Not authenticated.';
-                authDetails.innerText = 'Create an account or login to access role-based features.';
+            if (!authToken) {
+                el.className = 'alert alert-info d-flex justify-content-between align-items-center';
+                details.innerHTML = '<strong>Not authenticated.</strong> Create an account or login to access role-based features.';
+                btnLogout.classList.add('d-none');
+                return;
             }
-        }
 
-        document.getElementById('btnClearToken').addEventListener('click', () => {
-            authToken = null;
-            updateAuthStatus();
-            showMessage('info', 'Logged out successfully.');
-        });
+            const payload = parseJwt(authToken);
+            const name = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "Unknown User";
+            const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "No Role";
+
+            el.className = 'alert alert-success d-flex justify-content-between align-items-center';
+            details.innerHTML = `<strong>Authenticated.</strong> Logged in as ${name} (${role}).`;
+            btnLogout.classList.remove('d-none');
+        }
 
         // Jobs
         async function loadJobs() {
