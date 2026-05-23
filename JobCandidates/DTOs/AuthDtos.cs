@@ -8,23 +8,6 @@ namespace JobCandidates.DTOs
         public string Token { get; set; } = string.Empty;
     }
 
-    public class OtpRequestDTO
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-    }
-
-    public class OtpVerifyDTO
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-
-        [Required]
-        public string Code { get; set; } = string.Empty;
-    }
-
     public class RegisterAccountDTO
     {
         [Required]
@@ -45,6 +28,23 @@ namespace JobCandidates.DTOs
         [Required]
         [MaxLength(50)]
         public string Role { get; set; } = "User";
+    }
+
+    public class OtpRequestDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class OtpVerifyDTO
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Code { get; set; } = string.Empty;
     }
 
     public class SetUserRoleDTO

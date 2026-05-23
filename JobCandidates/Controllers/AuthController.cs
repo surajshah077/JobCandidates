@@ -1,5 +1,6 @@
 ﻿using JobCandidates.DTOs;
 using JobCandidates.Model;
+using JobCandidates.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,11 +17,13 @@ namespace JobCandidates.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly IConfiguration _config;
+        private readonly IEmailService _emailService;
 
-        public AuthController(ApplicationDbContext db, IConfiguration config)
+        public AuthController(ApplicationDbContext db, IConfiguration config, IEmailService emailService)
         {
             _db = db;
             _config = config;
+            _emailService = emailService;
         }
 
         private string GenerateJwtToken(AppUser user)
@@ -34,9 +37,7 @@ namespace JobCandidates.Controllers
             {
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Role, user.Role),
-                new Claim("gender", user.Gender),
-                new Claim("age", user.Age.ToString())
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
@@ -62,7 +63,7 @@ namespace JobCandidates.Controllers
                 return BadRequest(new ApiError
                 {
                     Code = "AccountExists",
-                    Message = "Account already exists. Please use login."
+                    Message = "Account already exists. Please login."
                 });
             }
 
@@ -74,7 +75,8 @@ namespace JobCandidates.Controllers
                 Age = dto.Age,
                 Gender = dto.Gender,
                 Email = dto.Email,
-                Role = normalizedRole
+                Role = normalizedRole,
+                IsEmailVerified = false
             };
 
             _db.Users.Add(user);
@@ -92,10 +94,11 @@ namespace JobCandidates.Controllers
 
             await _db.SaveChangesAsync();
 
+            await _emailService.SendOtpEmailAsync(dto.Email, code);
+
             return Ok(new
             {
-                message = "Account created. OTP sent for verification.",
-                code
+                message = "Account created. OTP has been sent to your email address."
             });
         }
 
@@ -125,10 +128,11 @@ namespace JobCandidates.Controllers
 
             await _db.SaveChangesAsync();
 
+            await _emailService.SendOtpEmailAsync(dto.Email, code);
+
             return Ok(new
             {
-                message = "Login OTP sent.",
-                code
+                message = "Login OTP has been sent to your email address."
             });
         }
 
@@ -164,6 +168,7 @@ namespace JobCandidates.Controllers
                 });
             }
 
+            user.IsEmailVerified = true;
             await _db.SaveChangesAsync();
 
             var jwt = GenerateJwtToken(user);
@@ -184,6 +189,7 @@ namespace JobCandidates.Controllers
                     u.Age,
                     u.Gender,
                     u.Role,
+                    u.IsEmailVerified,
                     u.CreatedAt
                 })
                 .ToListAsync();

@@ -784,11 +784,7 @@
                 const resp = await apiRequest('POST', '/auth/register', body);
                 document.getElementById('registerVerifyEmail').value = body.email;
 
-                if (resp.code) {
-                    document.getElementById('registerOtpCode').value = resp.code;
-                }
-
-                showMessage('success', resp.message || 'Account created. OTP sent.');
+                showMessage('success', resp.message || 'Account created. Please check your email for OTP.');
             } catch (err) {
                 showMessage('danger', 'Registration failed: ' + err.message);
             }
@@ -818,11 +814,7 @@
 
                 document.getElementById('loginVerifyEmail').value = email;
 
-                if (resp.code) {
-                    document.getElementById('loginOtpCode').value = resp.code;
-                }
-
-                showMessage('success', resp.message || 'Login OTP sent.');
+                showMessage('success', resp.message || 'Login OTP sent. Please check your email.');
             } catch (err) {
                 showMessage('danger', 'Login OTP request failed: ' + err.message);
             }
@@ -907,7 +899,9 @@
         document.getElementById('btnRefreshUsers').addEventListener('click', loadUsers);
 
         // Initial loads
-        updateAuthStatus();
+        const name = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || "Unknown User";
+        const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "";
+        details.innerText = `Logged in as ${name} (${role}).`;
         loadJobs();
         loadCandidates();
         loadApplications();
