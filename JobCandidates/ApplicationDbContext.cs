@@ -15,6 +15,7 @@ namespace JobCandidates
         public DbSet<Interview> Interviews { get; set; }
         public DbSet<AppUser> Users { get; set; }
         public DbSet<OtpCode> OtpCodes { get; set; }
+        public DbSet<PendingRegistration> PendingRegistrations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -62,6 +63,9 @@ namespace JobCandidates
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Email).IsUnique();
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Gender).HasMaxLength(30);
                 entity.Property(e => e.Role)
                       .IsRequired()
                       .HasMaxLength(50)
@@ -72,6 +76,17 @@ namespace JobCandidates
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.Email, e.Code });
+            });
+
+            modelBuilder.Entity<PendingRegistration>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Email);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Gender).HasMaxLength(30);
+                entity.Property(e => e.Role).IsRequired().HasMaxLength(50).HasDefaultValue("User");
+                entity.Property(e => e.OtpCode).IsRequired().HasMaxLength(6);
             });
         }
     }

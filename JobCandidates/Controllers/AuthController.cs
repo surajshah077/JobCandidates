@@ -57,8 +57,8 @@ namespace JobCandidates.Controllers
         [HttpPost("register")]
         public async Task<ActionResult> Register(RegisterAccountDTO dto)
         {
-            var existing = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
-            if (existing != null)
+            var existingUser = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (existingUser != null)
             {
                 return BadRequest(new ApiError
                 {
@@ -67,39 +67,89 @@ namespace JobCandidates.Controllers
                 });
             }
 
-            var normalizedRole = dto.Role == "Recruiter" ? "Recruiter" : "User";
+            var oldPending = await _db.PendingRegistrations
+                .Where(x => x.Email == dto.Email && !x.Used)
+                .ToListAsync();
 
-            var user = new AppUser
+            if (oldPending.Any())
+            {
+                _db.PendingRegistrations.RemoveRange(oldPending);
+                await _db.SaveChangesAsync();
+            }
+
+            var normalizedRole = dto.Role == "Recruiter" ? "Recruiter" : "User";
+            var code = new Random().Next(100000, 999999).ToString();
+
+            var pending = new PendingRegistration
             {
                 Name = dto.Name,
                 Age = dto.Age,
                 Gender = dto.Gender,
                 Email = dto.Email,
                 Role = normalizedRole,
-                IsEmailVerified = false
-            };
-
-            _db.Users.Add(user);
-            await _db.SaveChangesAsync();
-
-            var code = new Random().Next(100000, 999999).ToString();
-
-            _db.OtpCodes.Add(new OtpCode
-            {
-                Email = dto.Email,
-                Code = code,
+                OtpCode = code,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 Used = false
-            });
+            };
 
+            _db.PendingRegistrations.Add(pending);
             await _db.SaveChangesAsync();
 
             await _emailService.SendOtpEmailAsync(dto.Email, code);
 
             return Ok(new
             {
-                message = "Account created. OTP has been sent to your email address."
+                message = "OTP sent to your email. Account will be created after verification."
             });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("verify-register-otp")]
+        public async Task<ActionResult<LoginResponseDTO>> VerifyRegisterOtp(OtpVerifyDTO dto)
+        {
+            var pending = await _db.PendingRegistrations
+                .Where(x => x.Email == dto.Email &&
+                            x.OtpCode == dto.Code &&
+                            !x.Used &&
+                            x.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(x => x.Id)
+                .FirstOrDefaultAsync();
+
+            if (pending == null)
+            {
+                return Unauthorized(new ApiError
+                {
+                    Code = "InvalidOtp",
+                    Message = "Registration OTP is invalid or expired."
+                });
+            }
+
+            var existingUser = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
+            if (existingUser != null)
+            {
+                return BadRequest(new ApiError
+                {
+                    Code = "AccountExists",
+                    Message = "Account already exists."
+                });
+            }
+
+            var user = new AppUser
+            {
+                Name = pending.Name,
+                Age = pending.Age,
+                Gender = pending.Gender,
+                Email = pending.Email,
+                Role = pending.Role,
+                IsEmailVerified = true
+            };
+
+            pending.Used = true;
+            _db.Users.Add(user);
+            await _db.SaveChangesAsync();
+
+            var jwt = GenerateJwtToken(user);
+            return Ok(new LoginResponseDTO { Token = jwt });
         }
 
         [AllowAnonymous]
@@ -114,6 +164,25 @@ namespace JobCandidates.Controllers
                     Code = "UserNotFound",
                     Message = "Account not found. Please create an account first."
                 });
+            }
+
+            if (!user.IsEmailVerified)
+            {
+                return BadRequest(new ApiError
+                {
+                    Code = "EmailNotVerified",
+                    Message = "Email is not verified yet."
+                });
+            }
+
+            var oldOtps = await _db.OtpCodes
+                .Where(x => x.Email == dto.Email && !x.Used)
+                .ToListAsync();
+
+            if (oldOtps.Any())
+            {
+                _db.OtpCodes.RemoveRange(oldOtps);
+                await _db.SaveChangesAsync();
             }
 
             var code = new Random().Next(100000, 999999).ToString();
@@ -137,13 +206,14 @@ namespace JobCandidates.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("verify-otp")]
-        public async Task<ActionResult<LoginResponseDTO>> VerifyOtp(OtpVerifyDTO dto)
+        [HttpPost("verify-login-otp")]
+        public async Task<ActionResult<LoginResponseDTO>> VerifyLoginOtp(OtpVerifyDTO dto)
         {
-            var now = DateTime.UtcNow;
-
             var otp = await _db.OtpCodes
-                .Where(o => o.Email == dto.Email && o.Code == dto.Code && !o.Used && o.ExpiresAt > now)
+                .Where(o => o.Email == dto.Email &&
+                            o.Code == dto.Code &&
+                            !o.Used &&
+                            o.ExpiresAt > DateTime.UtcNow)
                 .OrderByDescending(o => o.Id)
                 .FirstOrDefaultAsync();
 
@@ -152,11 +222,9 @@ namespace JobCandidates.Controllers
                 return Unauthorized(new ApiError
                 {
                     Code = "InvalidOtp",
-                    Message = "OTP is invalid or expired."
+                    Message = "Login OTP is invalid or expired."
                 });
             }
-
-            otp.Used = true;
 
             var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null)
@@ -168,7 +236,16 @@ namespace JobCandidates.Controllers
                 });
             }
 
-            user.IsEmailVerified = true;
+            if (!user.IsEmailVerified)
+            {
+                return BadRequest(new ApiError
+                {
+                    Code = "EmailNotVerified",
+                    Message = "Email is not verified yet."
+                });
+            }
+
+            otp.Used = true;
             await _db.SaveChangesAsync();
 
             var jwt = GenerateJwtToken(user);
