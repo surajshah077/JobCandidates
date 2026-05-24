@@ -66,10 +66,7 @@ namespace JobCandidates
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Gender).HasMaxLength(30);
-                entity.Property(e => e.Role)
-                      .IsRequired()
-                      .HasMaxLength(50)
-                      .HasDefaultValue("User");
+                entity.Property(e => e.Role).IsRequired().HasMaxLength(50).HasDefaultValue("User");
             });
 
             modelBuilder.Entity<OtpCode>(entity =>

@@ -26,7 +26,7 @@ namespace JobCandidates.Services
                 string.IsNullOrWhiteSpace(password) ||
                 string.IsNullOrWhiteSpace(fromEmail))
             {
-                throw new InvalidOperationException("SMTP settings are missing in appsettings.json.");
+                throw new InvalidOperationException("SMTP configuration is missing.");
             }
 
             using var client = new SmtpClient(host, port)
@@ -42,8 +42,8 @@ namespace JobCandidates.Services
                     <h3>JobCandidates Email Verification</h3>
                     <p>Your OTP code is:</p>
                     <h2 style='color:#0d6efd;'>{otpCode}</h2>
-                    <p>This code will expire in 10 minutes.</p>
-                    <p>If you did not request this code, please ignore this email.</p>
+                    <p>This code expires in 10 minutes.</p>
+                    <p>If you did not request this code, you can ignore this email.</p>
                 </body>
                 </html>";
 

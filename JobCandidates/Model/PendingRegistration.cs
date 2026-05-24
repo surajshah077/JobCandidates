@@ -15,15 +15,19 @@ namespace JobCandidates.Model
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
+        [Range(18, 80)]
         public int Age { get; set; }
 
+        [Required]
         [MaxLength(30)]
         public string Gender { get; set; } = "PreferNotToSay";
 
+        [Required]
         [MaxLength(50)]
         public string Role { get; set; } = "User";
 
         [Required]
+        [MaxLength(6)]
         public string OtpCode { get; set; } = string.Empty;
 
         public DateTime ExpiresAt { get; set; }

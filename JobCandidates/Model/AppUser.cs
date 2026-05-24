@@ -16,7 +16,7 @@ namespace JobCandidates.Model
         public string Name { get; set; } = string.Empty;
 
         [Range(18, 80)]
-        public int Age { get; set; } = 18;
+        public int Age { get; set; }
 
         [Required]
         [MaxLength(30)]
