@@ -1,7 +1,8 @@
-﻿using JobCandidates.DTOs;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using JobCandidates.DTOs;
 using JobCandidates.Model;
 using JobCandidates.Repository;
-using Microsoft.AspNetCore.Mvc;
 
 namespace JobCandidates.Controllers
 {
@@ -43,6 +44,7 @@ namespace JobCandidates.Controllers
             return Ok(candidate);
         }
 
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpPost]
         public async Task<ActionResult<Candidate>> CreateCandidate(CreateCandidateDTO dto)
         {
@@ -60,6 +62,7 @@ namespace JobCandidates.Controllers
             return CreatedAtAction(nameof(GetCandidate), new { id = createdCandidate.Id }, createdCandidate);
         }
 
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpPut("{id}")]
         public async Task<ActionResult<Candidate>> UpdateCandidate(int id, UpdateCandidateDTO dto)
         {
@@ -86,6 +89,7 @@ namespace JobCandidates.Controllers
             return Ok(updatedCandidate);
         }
 
+        [Authorize(Roles = "Admin,Recruiter")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCandidate(int id)
         {
