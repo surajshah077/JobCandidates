@@ -397,7 +397,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const API_BASE = window.location.origin + "/api";
-        let authToken = null;
+        let authToken = localStorage.getItem('authToken') || null;
 
         function parseJwt(token) {
             try {
@@ -498,6 +498,7 @@
 
         document.getElementById('btnLogout').addEventListener('click', () => {
             authToken = null;
+            localStorage.removeItem('authToken');
             updateAuthStatus();
             showMessage('info', 'Logged out successfully.', 3000);
         });
@@ -531,6 +532,7 @@
 
                 const result = await apiRequest('POST', '/auth/verify-register-otp', body);
                 authToken = result.token;
+                localStorage.setItem('authToken', authToken);
                 updateAuthStatus();
                 showMessage('success', 'Account verified and logged in.', 4000);
                 e.target.reset();
@@ -564,6 +566,7 @@
 
                 const result = await apiRequest('POST', '/auth/verify-login-otp', body);
                 authToken = result.token;
+                localStorage.setItem('authToken', authToken);
                 updateAuthStatus();
                 showMessage('success', 'Logged in successfully.', 4000);
                 e.target.reset();
@@ -572,25 +575,47 @@
             }
         });
 
-        async function loadJobs() {
-            try {
-                const jobs = await apiRequest('GET', '/jobs');
-                const tbody = document.querySelector('#jobsTable tbody');
-                tbody.innerHTML = '';
-                jobs.forEach(j => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                            <td>${j.id}</td>
-                            <td>${j.title}</td>
-                            <td>${j.status ?? ''}</td>
-                            <td>${j.location ?? ''}</td>
-                            <td>${j.postedBy ?? ''}</td>
-                        `;
-                    tbody.appendChild(tr);
-                });
-            } catch (err) {
-                showMessage('danger', 'Failed to load jobs: ' + err.message, 7000);
+        async function apiRequest(method, path, body = null, requireAuth = false) {
+            const headers = { 'Content-Type': 'application/json' };
+
+            if (authToken) {
+                headers['Authorization'] = 'Bearer ' + authToken;
+            } else if (requireAuth) {
+                throw new Error('You must login first.');
             }
+
+            console.log('API REQUEST', {
+                url: API_BASE + path,
+                method,
+                requireAuth,
+                hasToken: !!authToken,
+                authorizationHeader: headers['Authorization'] ? 'present' : 'missing'
+            });
+
+            const response = await fetch(API_BASE + path, {
+                method,
+                headers,
+                body: body ? JSON.stringify(body) : null
+            });
+
+            let data = null;
+            try {
+                data = await response.json();
+            } catch {
+            }
+
+            console.log('API RESPONSE', {
+                url: API_BASE + path,
+                status: response.status,
+                data
+            });
+
+            if (!response.ok) {
+                const msg = data?.message || `Request failed with status ${response.status}`;
+                throw new Error(msg);
+            }
+
+            return data;
         }
 
         document.getElementById('btnRefreshJobs').addEventListener('click', loadJobs);
