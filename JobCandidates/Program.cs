@@ -4,6 +4,7 @@ using JobCandidates.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -40,7 +41,39 @@ namespace JobCandidates
             });
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "JobCandidates API",
+                    Version = "v1"
+                });
+
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: Bearer {token}",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
 
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
@@ -48,6 +81,7 @@ namespace JobCandidates
                     options.RequireHttpsMetadata = false;
                     options.IncludeErrorDetails = true;
                     options.MapInboundClaims = false;
+                    options.SaveToken = true;
 
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
@@ -55,7 +89,7 @@ namespace JobCandidates
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ClockSkew = TimeSpan.FromMinutes(1),
+                        ClockSkew = TimeSpan.FromMinutes(2),
 
                         ValidIssuer = jwtIssuer,
                         ValidAudience = jwtAudience,
@@ -69,27 +103,48 @@ namespace JobCandidates
                     {
                         OnMessageReceived = context =>
                         {
-                            var authHeader = context.Request.Headers["Authorization"].ToString();
-                            Console.WriteLine($"[JWT] Header: {authHeader}");
-                            return Task.CompletedTask;
-                        },
-                        OnAuthenticationFailed = context =>
-                        {
-                            Console.WriteLine($"[JWT] Authentication failed: {context.Exception.Message}");
+                            Console.WriteLine("======================================");
+                            Console.WriteLine("[JWT] OnMessageReceived");
+                            Console.WriteLine($"[JWT] Authorization Header: {context.Request.Headers["Authorization"]}");
+                            Console.WriteLine("======================================");
                             return Task.CompletedTask;
                         },
                         OnTokenValidated = context =>
                         {
+                            Console.WriteLine("======================================");
                             Console.WriteLine("[JWT] Token validated successfully.");
+                            Console.WriteLine("[JWT] Claims:");
                             foreach (var claim in context.Principal?.Claims ?? Enumerable.Empty<System.Security.Claims.Claim>())
                             {
                                 Console.WriteLine($"[JWT CLAIM] {claim.Type} = {claim.Value}");
                             }
+                            Console.WriteLine("======================================");
+                            return Task.CompletedTask;
+                        },
+                        OnAuthenticationFailed = context =>
+                        {
+                            Console.WriteLine("======================================");
+                            Console.WriteLine("[JWT] Authentication FAILED");
+                            Console.WriteLine($"[JWT] Exception Type: {context.Exception.GetType().FullName}");
+                            Console.WriteLine($"[JWT] Message: {context.Exception.Message}");
+                            Console.WriteLine($"[JWT] Full Exception: {context.Exception}");
+                            Console.WriteLine("======================================");
                             return Task.CompletedTask;
                         },
                         OnChallenge = context =>
                         {
-                            Console.WriteLine($"[JWT] Challenge: {context.Error} | {context.ErrorDescription}");
+                            Console.WriteLine("======================================");
+                            Console.WriteLine("[JWT] Challenge triggered");
+                            Console.WriteLine($"[JWT] Error: {context.Error}");
+                            Console.WriteLine($"[JWT] Error Description: {context.ErrorDescription}");
+                            Console.WriteLine("======================================");
+                            return Task.CompletedTask;
+                        },
+                        OnForbidden = context =>
+                        {
+                            Console.WriteLine("======================================");
+                            Console.WriteLine("[JWT] Forbidden triggered");
+                            Console.WriteLine("======================================");
                             return Task.CompletedTask;
                         }
                     };

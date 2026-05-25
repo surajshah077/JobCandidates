@@ -1,7 +1,5 @@
 ﻿const API_BASE = window.location.origin + "/api";
-
-// IMPORTANT: do not auto-login when app starts
-let authToken = null;
+let authToken = localStorage.getItem("authToken") || null;
 
 function getToken() {
     return authToken;
@@ -31,6 +29,12 @@ function parseJwt(token) {
     } catch {
         return null;
     }
+}
+
+function isTokenExpired(token) {
+    const payload = parseJwt(token);
+    if (!payload || !payload.exp) return true;
+    return Date.now() >= payload.exp * 1000;
 }
 
 function showMessage(type, text, timeout = 5000) {
@@ -65,6 +69,10 @@ function updateAuthStatus() {
     const emailEl = document.getElementById('currentUserEmail');
     const roleEl = document.getElementById('currentUserRole');
 
+    if (authToken && isTokenExpired(authToken)) {
+        clearToken();
+    }
+
     if (authToken) {
         const payload = parseJwt(authToken) || {};
         const email = payload.email || "-";
@@ -72,16 +80,16 @@ function updateAuthStatus() {
 
         status.classList.remove('alert-info');
         status.classList.add('alert-success');
-        title.innerText = 'Authenticated.';
-        details.innerText = `Logged in as ${email} (${role}).`;
+        if (title) title.innerText = 'Authenticated.';
+        if (details) details.innerText = `Logged in as ${email} (${role}).`;
         if (emailEl) emailEl.innerText = email;
         if (roleEl) roleEl.innerText = role;
         if (logoutBtn) logoutBtn.disabled = false;
     } else {
         status.classList.remove('alert-success');
         status.classList.add('alert-info');
-        title.innerText = 'Not authenticated.';
-        details.innerText = 'Create an account or login to continue.';
+        if (title) title.innerText = 'Not authenticated.';
+        if (details) details.innerText = 'Please login first.';
         if (emailEl) emailEl.innerText = '-';
         if (roleEl) roleEl.innerText = '-';
         if (logoutBtn) logoutBtn.disabled = true;
@@ -98,9 +106,10 @@ async function apiRequest(method, path, body = null, requireAuth = false) {
     }
 
     console.log('API REQUEST', {
-        url: API_BASE + path,
         method,
-        headers
+        url: API_BASE + path,
+        hasToken: !!authToken,
+        authHeader: headers['Authorization'] || 'missing'
     });
 
     const response = await fetch(API_BASE + path, {
@@ -121,11 +130,13 @@ async function apiRequest(method, path, body = null, requireAuth = false) {
     });
 
     if (response.status === 401) {
-        throw new Error(data?.message || 'Unauthorized (401). Please login with a valid account.');
+        clearToken();
+        updateAuthStatus();
+        throw new Error(data?.message || 'Unauthorized (401). Please login again.');
     }
 
     if (response.status === 403) {
-        throw new Error(data?.message || 'Forbidden (403). Your role cannot perform this action.');
+        throw new Error(data?.message || 'Forbidden (403). Your role is not allowed.');
     }
 
     if (!response.ok) {
@@ -135,7 +146,7 @@ async function apiRequest(method, path, body = null, requireAuth = false) {
     return data;
 }
 
-/* AUTH */
+/* AUTH PAGE */
 function initAuthPage() {
     const logoutBtn = document.getElementById('btnLogout');
     if (logoutBtn) {
@@ -231,14 +242,15 @@ function initAuthPage() {
 
 /* JOBS */
 async function loadJobs() {
+    const table = document.querySelector('#jobsTable tbody');
+    if (!table) return;
+
     try {
         const jobs = await apiRequest('GET', '/jobs');
-        const tbody = document.querySelector('#jobsTable tbody');
-        if (!tbody) return;
+        table.innerHTML = '';
 
-        tbody.innerHTML = '';
         if (!jobs.length) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No jobs found.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No jobs found.</td></tr>`;
             return;
         }
 
@@ -251,7 +263,7 @@ async function loadJobs() {
                 <td>${j.location ?? ''}</td>
                 <td>${j.postedByEmail ?? ''}</td>
             `;
-            tbody.appendChild(tr);
+            table.appendChild(tr);
         });
     } catch (err) {
         showMessage('danger', 'Failed to load jobs: ' + err.message, 7000);
@@ -306,14 +318,15 @@ function initJobsPage() {
 
 /* CANDIDATES */
 async function loadCandidates() {
+    const table = document.querySelector('#candidatesTable tbody');
+    if (!table) return;
+
     try {
         const candidates = await apiRequest('GET', '/candidates');
-        const tbody = document.querySelector('#candidatesTable tbody');
-        if (!tbody) return;
+        table.innerHTML = '';
 
-        tbody.innerHTML = '';
         if (!candidates.length) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No candidates found.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No candidates found.</td></tr>`;
             return;
         }
 
@@ -325,7 +338,7 @@ async function loadCandidates() {
                 <td>${c.email}</td>
                 <td>${c.experienceYears ?? 0}</td>
             `;
-            tbody.appendChild(tr);
+            table.appendChild(tr);
         });
     } catch (err) {
         showMessage('danger', 'Failed to load candidates: ' + err.message, 7000);
@@ -365,14 +378,15 @@ function initCandidatesPage() {
 
 /* APPLICATIONS */
 async function loadApplications() {
+    const table = document.querySelector('#applicationsTable tbody');
+    if (!table) return;
+
     try {
         const apps = await apiRequest('GET', '/applications');
-        const tbody = document.querySelector('#applicationsTable tbody');
-        if (!tbody) return;
+        table.innerHTML = '';
 
-        tbody.innerHTML = '';
         if (!apps.length) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No applications found.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No applications found.</td></tr>`;
             return;
         }
 
@@ -384,7 +398,7 @@ async function loadApplications() {
                 <td>${a.jobId}</td>
                 <td>${a.status ?? ''}</td>
             `;
-            tbody.appendChild(tr);
+            table.appendChild(tr);
         });
     } catch (err) {
         showMessage('danger', 'Failed to load applications: ' + err.message, 7000);
@@ -421,14 +435,15 @@ function initApplicationsPage() {
 
 /* INTERVIEWS */
 async function loadInterviews() {
+    const table = document.querySelector('#interviewsTable tbody');
+    if (!table) return;
+
     try {
         const interviews = await apiRequest('GET', '/interviews');
-        const tbody = document.querySelector('#interviewsTable tbody');
-        if (!tbody) return;
+        table.innerHTML = '';
 
-        tbody.innerHTML = '';
         if (!interviews.length) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No interviews found.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No interviews found.</td></tr>`;
             return;
         }
 
@@ -440,7 +455,7 @@ async function loadInterviews() {
                 <td>${i.interviewDate ?? ''}</td>
                 <td>${i.mode ?? ''}</td>
             `;
-            tbody.appendChild(tr);
+            table.appendChild(tr);
         });
     } catch (err) {
         showMessage('danger', 'Failed to load interviews: ' + err.message, 7000);
@@ -476,9 +491,7 @@ function initInterviewsPage() {
     if (document.getElementById('interviewsTable')) loadInterviews();
 }
 
-/* GLOBAL INIT */
 document.addEventListener('DOMContentLoaded', () => {
-    clearToken(); // force fresh login every run
     updateAuthStatus();
     initAuthPage();
     initJobsPage();

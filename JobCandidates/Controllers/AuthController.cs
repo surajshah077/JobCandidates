@@ -33,25 +33,41 @@ namespace JobCandidates.Controllers
             var issuer = jwtSection["Issuer"] ?? "JobCandidatesApi";
             var audience = jwtSection["Audience"] ?? "JobCandidatesApiClient";
 
+            Console.WriteLine("======================================");
+            Console.WriteLine("[TOKEN GEN] Generating token");
+            Console.WriteLine($"[TOKEN GEN] Key: {key}");
+            Console.WriteLine($"[TOKEN GEN] Issuer: {issuer}");
+            Console.WriteLine($"[TOKEN GEN] Audience: {audience}");
+            Console.WriteLine($"[TOKEN GEN] Email: {user.Email}");
+            Console.WriteLine($"[TOKEN GEN] Role: {user.Role}");
+            Console.WriteLine("======================================");
+
             var claims = new List<Claim>
-            {
-                new Claim("email", user.Email),
-                new Claim("name", user.Name),
-                new Claim("role", user.Role)
-            };
+    {
+        new Claim("email", user.Email),
+        new Claim("name", user.Name ?? ""),
+        new Claim("role", user.Role ?? "User")
+    };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var now = DateTime.UtcNow;
 
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                notBefore: DateTime.UtcNow,
-                expires: DateTime.UtcNow.AddHours(2),
+                notBefore: now.AddMinutes(-1),
+                expires: now.AddHours(2),
                 signingCredentials: creds);
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            Console.WriteLine($"[TOKEN GEN] Token: {tokenString}");
+            Console.WriteLine("======================================");
+
+            return tokenString;
         }
 
         [AllowAnonymous]
@@ -251,6 +267,17 @@ namespace JobCandidates.Controllers
 
             var jwt = GenerateJwtToken(user);
             return Ok(new LoginResponseDTO { Token = jwt });
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public IActionResult Me()
+        {
+            return Ok(new
+            {
+                authenticated = true,
+                claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+            });
         }
 
         [Authorize(Roles = "Admin")]
