@@ -1,41 +1,5 @@
 ﻿const API_BASE = window.location.origin + "/api";
-let authToken = localStorage.getItem("authToken") || null;
-
-function getToken() {
-    return authToken;
-}
-
-function setToken(token) {
-    authToken = token;
-    localStorage.setItem("authToken", token);
-}
-
-function clearToken() {
-    authToken = null;
-    localStorage.removeItem("authToken");
-}
-
-function parseJwt(token) {
-    try {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split('')
-                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-                .join('')
-        );
-        return JSON.parse(jsonPayload);
-    } catch {
-        return null;
-    }
-}
-
-function isTokenExpired(token) {
-    const payload = parseJwt(token);
-    if (!payload || !payload.exp) return true;
-    return Date.now() >= payload.exp * 1000;
-}
+let currentUser = null;
 
 function showMessage(type, text, timeout = 5000) {
     const container = document.getElementById('messages');
@@ -69,21 +33,13 @@ function updateAuthStatus() {
     const emailEl = document.getElementById('currentUserEmail');
     const roleEl = document.getElementById('currentUserRole');
 
-    if (authToken && isTokenExpired(authToken)) {
-        clearToken();
-    }
-
-    if (authToken) {
-        const payload = parseJwt(authToken) || {};
-        const email = payload.email || "-";
-        const role = payload.role || "-";
-
+    if (currentUser) {
         status.classList.remove('alert-info');
         status.classList.add('alert-success');
         if (title) title.innerText = 'Authenticated.';
-        if (details) details.innerText = `Logged in as ${email} (${role}).`;
-        if (emailEl) emailEl.innerText = email;
-        if (roleEl) roleEl.innerText = role;
+        if (details) details.innerText = `Logged in as ${currentUser.email} (${currentUser.role}).`;
+        if (emailEl) emailEl.innerText = currentUser.email || '-';
+        if (roleEl) roleEl.innerText = currentUser.role || '-';
         if (logoutBtn) logoutBtn.disabled = false;
     } else {
         status.classList.remove('alert-success');
@@ -99,22 +55,10 @@ function updateAuthStatus() {
 async function apiRequest(method, path, body = null, requireAuth = false) {
     const headers = { 'Content-Type': 'application/json' };
 
-    if (authToken) {
-        headers['Authorization'] = 'Bearer ' + authToken;
-    } else if (requireAuth) {
-        throw new Error('You must login first.');
-    }
-
-    console.log('API REQUEST', {
-        method,
-        url: API_BASE + path,
-        hasToken: !!authToken,
-        authHeader: headers['Authorization'] || 'missing'
-    });
-
     const response = await fetch(API_BASE + path, {
         method,
         headers,
+        credentials: 'include',
         body: body ? JSON.stringify(body) : null
     });
 
@@ -124,19 +68,16 @@ async function apiRequest(method, path, body = null, requireAuth = false) {
     } catch {
     }
 
-    console.log('API RESPONSE', {
-        status: response.status,
-        data
-    });
-
     if (response.status === 401) {
-        clearToken();
+        currentUser = null;
         updateAuthStatus();
-        throw new Error(data?.message || 'Unauthorized (401). Please login again.');
+        if (requireAuth) {
+            throw new Error(data?.message || 'You must login first.');
+        }
     }
 
     if (response.status === 403) {
-        throw new Error(data?.message || 'Forbidden (403). Your role is not allowed.');
+        throw new Error(data?.message || 'You are not allowed to do this action.');
     }
 
     if (!response.ok) {
@@ -146,12 +87,26 @@ async function apiRequest(method, path, body = null, requireAuth = false) {
     return data;
 }
 
+async function loadCurrentUser() {
+    try {
+        const result = await apiRequest('GET', '/auth/me');
+        currentUser = result;
+    } catch {
+        currentUser = null;
+    }
+    updateAuthStatus();
+}
+
 /* AUTH PAGE */
 function initAuthPage() {
     const logoutBtn = document.getElementById('btnLogout');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            clearToken();
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await apiRequest('POST', '/auth/logout', null, true);
+            } catch {
+            }
+            currentUser = null;
             updateAuthStatus();
             showMessage('info', 'Logged out successfully.', 3000);
         });
@@ -190,9 +145,8 @@ function initAuthPage() {
                 };
 
                 const result = await apiRequest('POST', '/auth/verify-register-otp', body);
-                setToken(result.token);
-                updateAuthStatus();
-                showMessage('success', 'Account verified and logged in.', 4000);
+                await loadCurrentUser();
+                showMessage('success', result.message || 'Account verified and logged in.', 4000);
                 e.target.reset();
             } catch (err) {
                 showMessage('danger', 'Verification failed: ' + err.message, 7000);
@@ -229,9 +183,8 @@ function initAuthPage() {
                 };
 
                 const result = await apiRequest('POST', '/auth/verify-login-otp', body);
-                setToken(result.token);
-                updateAuthStatus();
-                showMessage('success', 'Logged in successfully.', 4000);
+                await loadCurrentUser();
+                showMessage('success', result.message || 'Logged in successfully.', 4000);
                 e.target.reset();
             } catch (err) {
                 showMessage('danger', 'Login failed: ' + err.message, 7000);
@@ -376,6 +329,67 @@ function initCandidatesPage() {
     if (document.getElementById('candidatesTable')) loadCandidates();
 }
 
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value ?? '0';
+}
+
+function fillSimpleTable(tableId, rows, columns) {
+    const table = document.querySelector(`#${tableId} tbody`);
+    if (!table) return;
+
+    table.innerHTML = '';
+
+    if (!rows || !rows.length) {
+        table.innerHTML = `<tr><td colspan="${columns.length}" class="text-center text-muted">No data found.</td></tr>`;
+        return;
+    }
+
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = columns.map(col => `<td>${row[col] ?? ''}</td>`).join('');
+        table.appendChild(tr);
+    });
+}
+
+async function loadAnalytics() {
+    if (!document.getElementById('metricTotalJobs')) return;
+
+    try {
+        const data = await apiRequest('GET', '/analytics', null, true);
+
+        setText('metricTotalJobs', data.totalJobs);
+        setText('metricTotalCandidates', data.totalCandidates);
+        setText('metricTotalApplications', data.totalApplications);
+        setText('metricTotalInterviews', data.totalInterviews);
+
+        fillSimpleTable('applicationStatusTable', data.applicationsByStatus || [], ['status', 'count']);
+        fillSimpleTable('jobStatusTable', data.jobsByStatus || [], ['status', 'count']);
+        fillSimpleTable('topJobsTable', data.topJobsByApplications || [], ['jobId', 'title', 'applicationCount']);
+    } catch (err) {
+        showMessage('danger', 'Failed to load analytics: ' + err.message, 7000);
+    }
+}
+
+function initAnalyticsPage() {
+    const refreshBtn = document.getElementById('btnRefreshAnalytics');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadAnalytics);
+    }
+
+    if (document.getElementById('metricTotalJobs')) {
+        loadAnalytics();
+    }
+}
+
+tr.innerHTML = `
+    <td>${j.id}</td>
+    <td>${j.title}</td>
+    <td>${j.status ?? ''}</td>
+    <td>${j.location ?? ''}</td>
+    <td>${j.postedByName ? `${j.postedByName} (${j.postedByEmail ?? ''})` : (j.postedByEmail ?? '')}</td>
+`;
+
 /* APPLICATIONS */
 async function loadApplications() {
     const table = document.querySelector('#applicationsTable tbody');
@@ -491,8 +505,8 @@ function initInterviewsPage() {
     if (document.getElementById('interviewsTable')) loadInterviews();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateAuthStatus();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCurrentUser();
     initAuthPage();
     initJobsPage();
     initCandidatesPage();

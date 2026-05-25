@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace JobCandidates.Model
 {
@@ -7,11 +8,11 @@ namespace JobCandidates.Model
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(150)]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(1000)]
+        [MaxLength(2000)]
         public string Description { get; set; } = string.Empty;
 
         [Required]
@@ -19,21 +20,21 @@ namespace JobCandidates.Model
         public string Location { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string SalaryRange { get; set; } = string.Empty;
+        public string? SalaryRange { get; set; }
 
         [Required]
         [MaxLength(500)]
-        public string RequiredSkills { get; set; } = string.Empty; // Comma-separated skills
+        public string RequiredSkills { get; set; } = string.Empty;
 
-        [RegularExpression("Open|Closed", ErrorMessage = "Status must be either 'Open' or 'Closed'.")]
+        [Required]
+        [MaxLength(50)]
         public string Status { get; set; } = "Open";
 
-        public DateTime PostedDate { get; set; } = DateTime.UtcNow;
+        public int? PostedByUserId { get; set; }
 
-        [EmailAddress]
-        [MaxLength(200)]
-        public string PostedBy { get; set; } = string.Empty; // Recruiter email
+        [ForeignKey(nameof(PostedByUserId))]
+        public AppUser? PostedByUser { get; set; }
 
-        public List<Application>? Applications { get; set; }
+        public ICollection<Application> Applications { get; set; } = new List<Application>();
     }
 }

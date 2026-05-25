@@ -2,14 +2,16 @@
 
 namespace JobCandidates.DTOs
 {
-    public class CreateJobDTO
+    public class JobDTO
     {
+        public int Id { get; set; }
+
         [Required]
-        [MaxLength(150)]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(1000)]
+        [MaxLength(2000)]
         public string Description { get; set; } = string.Empty;
 
         [Required]
@@ -17,31 +19,65 @@ namespace JobCandidates.DTOs
         public string Location { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string SalaryRange { get; set; } = string.Empty;
+        public string? SalaryRange { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string RequiredSkills { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string Status { get; set; } = string.Empty;
+
+        public string? PostedByEmail { get; set; }
+        public string? PostedByName { get; set; }
+    }
+
+    public class CreateJob
+    {
+        [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(2000)]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        public string? SalaryRange { get; set; }
 
         [Required]
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
     }
 
-    public class UpdateJobDTO
+    public class UpdateJob
     {
-        [MaxLength(150)]
+        [Required]
+        [MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 
-        [MaxLength(1000)]
+        [Required]
+        [MaxLength(2000)]
         public string Description { get; set; } = string.Empty;
 
+        [Required]
         [MaxLength(200)]
         public string Location { get; set; } = string.Empty;
 
         [MaxLength(100)]
-        public string SalaryRange { get; set; } = string.Empty;
+        public string? SalaryRange { get; set; }
 
+        [Required]
         [MaxLength(500)]
         public string RequiredSkills { get; set; } = string.Empty;
 
-        [RegularExpression("Open|Closed", ErrorMessage = "Status must be either 'Open' or 'Closed'.")]
-        public string Status { get; set; } = "Open";
+        [Required]
+        [MaxLength(50)]
+        public string Status { get; set; } = string.Empty;
     }
 }
