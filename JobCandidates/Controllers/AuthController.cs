@@ -35,9 +35,9 @@ namespace JobCandidates.Controllers
 
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim("email", user.Email),
+                new Claim("name", user.Name),
+                new Claim("role", user.Role)
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
@@ -47,6 +47,7 @@ namespace JobCandidates.Controllers
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
+                notBefore: DateTime.UtcNow,
                 expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: creds);
 
@@ -288,7 +289,8 @@ namespace JobCandidates.Controllers
                 });
             }
 
-            user.Role = dto.Role;
+            var normalizedRole = dto.Role == "Recruiter" || dto.Role == "Admin" ? dto.Role : "User";
+            user.Role = normalizedRole;
             await _db.SaveChangesAsync();
 
             return NoContent();
