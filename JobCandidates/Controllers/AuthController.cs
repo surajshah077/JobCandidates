@@ -44,6 +44,13 @@ namespace JobCandidates.Controllers
                     ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
                 });
         }
+        [AllowAnonymous]
+        [HttpPost("force-logout")]
+        public async Task<IActionResult> ForceLogout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new { message = "Session cleared." });
+        }
 
         [AllowAnonymous]
         [HttpGet("unauthorized")]
@@ -273,9 +280,9 @@ namespace JobCandidates.Controllers
             return Ok(new
             {
                 authenticated = true,
-                email = User.FindFirstValue(ClaimTypes.Email),
-                name = User.FindFirstValue(ClaimTypes.Name),
-                role = User.FindFirstValue(ClaimTypes.Role)
+                email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value,
+                name = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value,
+                role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
             });
         }
 

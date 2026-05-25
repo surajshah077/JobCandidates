@@ -1,39 +1,40 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using JobCandidates.Model;
 
 namespace JobCandidates.DTOs
 {
+    public class InterviewDTO
+    {
+        public int Id { get; set; }
+        public int ApplicationId { get; set; }
+        public DateOnly ScheduledDate { get; set; }
+        public string Mode { get; set; } = string.Empty;
+        public string? Feedback { get; set; }
+    }
     public class CreateInterviewDTO
     {
         [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "ApplicationId must be a positive integer.")]
         public int ApplicationId { get; set; }
 
         [Required]
-        public DateTime ScheduledDate { get; set; }
+        public DateOnly ScheduledDate { get; set; }
 
-        [MaxLength(150)]
-        public string InterviewerName { get; set; } = string.Empty;
+        [Required]
+        [MaxLength(50)]
+        public string Mode { get; set; } = string.Empty;
 
-        [MaxLength(300)]
-        public string LocationOrLink { get; set; } = string.Empty;
+        [MaxLength(1000)]
+        public string? Feedback { get; set; }
     }
-
     public class UpdateInterviewDTO
     {
         [Required]
-        public DateTime ScheduledDate { get; set; }
-
-        [MaxLength(150)]
-        public string InterviewerName { get; set; } = string.Empty;
-
-        [MaxLength(300)]
-        public string LocationOrLink { get; set; } = string.Empty;
+        public DateOnly ScheduledDate { get; set; }
 
         [Required]
-        public InterviewFeedback Feedback { get; set; }
+        [MaxLength(50)]
+        public string Mode { get; set; } = string.Empty;
 
         [MaxLength(1000)]
-        public string? Notes { get; set; }
+        public string? Feedback { get; set; }
     }
 }

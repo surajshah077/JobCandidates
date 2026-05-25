@@ -7,23 +7,18 @@ namespace JobCandidates.Model
         public int Id { get; set; }
 
         [Required]
-        [Range(1, int.MaxValue)]
         public int ApplicationId { get; set; }
 
+        public Application? Application { get; set; }
+
         [Required]
-        public DateTime ScheduledDate { get; set; }
+        public DateOnly ScheduledDate { get; set; }
 
-        [MaxLength(150)]
-        public string InterviewerName { get; set; } = string.Empty;
-
-        [MaxLength(300)]
-        public string LocationOrLink { get; set; } = string.Empty;
-
-        public InterviewFeedback Feedback { get; set; } = InterviewFeedback.Pending;
+        [Required]
+        [MaxLength(50)]
+        public string Mode { get; set; } = string.Empty;
 
         [MaxLength(1000)]
-        public string? Notes { get; set; }
-
-        public Application? Application { get; set; }
+        public string? Feedback { get; set; }
     }
 }

@@ -1,89 +1,83 @@
 ﻿using JobCandidates.DTOs;
 using JobCandidates.Model;
-using JobCandidates.Repository;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobCandidates.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class InterviewsController : ControllerBase
     {
-        private readonly IInterviewRepository _interviewRepository;
-        private readonly IApplicationRepository _applicationRepository;
-        private readonly IJobRepository _jobRepository;
+        private readonly ApplicationDbContext _context;
 
-        public InterviewsController(
-            IInterviewRepository interviewRepository,
-            IApplicationRepository applicationRepository,
-            IJobRepository jobRepository)
+        public InterviewsController(ApplicationDbContext context)
         {
-            _interviewRepository = interviewRepository;
-            _applicationRepository = applicationRepository;
-            _jobRepository = jobRepository;
+            _context = context;
+        }
+
+        private static InterviewDTO MapToDto(Interview interview)
+        {
+            return new InterviewDTO
+            {
+                Id = interview.Id,
+                ApplicationId = interview.ApplicationId,
+                ScheduledDate = interview.ScheduledDate,
+                Mode = interview.Mode,
+                Feedback = interview.Feedback
+            };
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Interview>>> GetInterviews()
+        public async Task<ActionResult<IEnumerable<InterviewDTO>>> GetInterviews()
         {
-            var interviews = await _interviewRepository.GetAllInterviewsAsync();
-            return Ok(interviews);
+            var interviews = await _context.Interviews
+                .OrderBy(i => i.Id)
+                .ToListAsync();
+
+            return Ok(interviews.Select(MapToDto).ToList());
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Interview>> GetInterview(int id)
+        public async Task<ActionResult<InterviewDTO>> GetInterview(int id)
         {
-            var interview = await _interviewRepository.GetInterviewByIdAsync(id);
+            var interview = await _context.Interviews.FindAsync(id);
+
             if (interview == null)
             {
-                return NotFound(new ApiError
+                return NotFound(new
                 {
-                    Code = "InterviewNotFound",
-                    Message = $"Interview with id {id} was not found."
+                    message = $"Interview with id {id} was not found."
                 });
             }
 
-            return Ok(interview);
+            return Ok(MapToDto(interview));
         }
 
         [HttpPost]
-        public async Task<ActionResult<Interview>> CreateInterview(CreateInterviewDTO dto)
+        public async Task<ActionResult<InterviewDTO>> CreateInterview(CreateInterviewDTO dto)
         {
-            var application = await _applicationRepository.GetApplicationByIdAsync(dto.ApplicationId);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (dto.ScheduledDate < DateOnly.FromDateTime(DateTime.Today))
+            {
+                return BadRequest(new
+                {
+                    message = "ScheduledDate cannot be in the past."
+                });
+            }
+
+            var application = await _context.Applications.FindAsync(dto.ApplicationId);
             if (application == null)
             {
-                return NotFound(new ApiError
+                return NotFound(new
                 {
-                    Code = "ApplicationNotFound",
-                    Message = $"Application with id {dto.ApplicationId} was not found."
-                });
-            }
-
-            var job = await _jobRepository.GetJobByIdAsync(application.JobId);
-            if (job == null)
-            {
-                return NotFound(new ApiError
-                {
-                    Code = "JobNotFound",
-                    Message = $"Job with id {application.JobId} was not found."
-                });
-            }
-
-            if (job.Status == "Closed")
-            {
-                return BadRequest(new ApiError
-                {
-                    Code = "JobClosed",
-                    Message = "Cannot schedule an interview for a closed job."
-                });
-            }
-
-            if (dto.ScheduledDate < DateTime.UtcNow.AddDays(-1))
-            {
-                return BadRequest(new ApiError
-                {
-                    Code = "InterviewInPast",
-                    Message = "ScheduledDate cannot be in the past."
+                    message = $"Application with id {dto.ApplicationId} was not found."
                 });
             }
 
@@ -91,51 +85,64 @@ namespace JobCandidates.Controllers
             {
                 ApplicationId = dto.ApplicationId,
                 ScheduledDate = dto.ScheduledDate,
-                InterviewerName = dto.InterviewerName,
-                LocationOrLink = dto.LocationOrLink
+                Mode = dto.Mode,
+                Feedback = dto.Feedback
             };
 
-            var created = await _interviewRepository.CreateInterviewAsync(interview);
-            return CreatedAtAction(nameof(GetInterview), new { id = created.Id }, created);
+            _context.Interviews.Add(interview);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetInterview), new { id = interview.Id }, MapToDto(interview));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<Interview>> UpdateInterview(int id, UpdateInterviewDTO dto)
+        public async Task<ActionResult<InterviewDTO>> UpdateInterview(int id, UpdateInterviewDTO dto)
         {
-            var interview = new Interview
+            if (!ModelState.IsValid)
             {
-                ScheduledDate = dto.ScheduledDate,
-                InterviewerName = dto.InterviewerName,
-                LocationOrLink = dto.LocationOrLink,
-                Feedback = dto.Feedback,
-                Notes = dto.Notes
-            };
+                return BadRequest(ModelState);
+            }
 
-            var updated = await _interviewRepository.UpdateInterviewAsync(id, interview);
-            if (updated == null)
+            if (dto.ScheduledDate < DateOnly.FromDateTime(DateTime.Today))
             {
-                return NotFound(new ApiError
+                return BadRequest(new
                 {
-                    Code = "InterviewNotFound",
-                    Message = $"Interview with id {id} was not found."
+                    message = "ScheduledDate cannot be in the past."
                 });
             }
 
-            return Ok(updated);
+            var interview = await _context.Interviews.FindAsync(id);
+            if (interview == null)
+            {
+                return NotFound(new
+                {
+                    message = $"Interview with id {id} was not found."
+                });
+            }
+
+            interview.ScheduledDate = dto.ScheduledDate;
+            interview.Mode = dto.Mode;
+            interview.Feedback = dto.Feedback;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(MapToDto(interview));
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteInterview(int id)
         {
-            var result = await _interviewRepository.DeleteInterviewAsync(id);
-            if (!result)
+            var interview = await _context.Interviews.FindAsync(id);
+            if (interview == null)
             {
-                return NotFound(new ApiError
+                return NotFound(new
                 {
-                    Code = "InterviewNotFound",
-                    Message = $"Interview with id {id} was not found."
+                    message = $"Interview with id {id} was not found."
                 });
             }
+
+            _context.Interviews.Remove(interview);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }

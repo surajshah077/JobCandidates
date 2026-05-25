@@ -1,40 +1,69 @@
-﻿using JobCandidates.Repository;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobCandidates.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     public class AnalyticsController : ControllerBase
     {
-        private readonly IAnalyticsRepository _analyticsRepository;
+        private readonly ApplicationDbContext _context;
 
-        public AnalyticsController(IAnalyticsRepository analyticsRepository)
+        public AnalyticsController(ApplicationDbContext context)
         {
-            _analyticsRepository = analyticsRepository;
+            _context = context;
         }
 
-        [HttpGet("summary")]
-        public async Task<IActionResult> GetSummary()
+        [HttpGet]
+        public async Task<IActionResult> GetAnalytics()
         {
-            var summary = await _analyticsRepository.GetSummaryAsync();
-            return Ok(summary);
-        }
+            var totalJobs = await _context.Jobs.CountAsync();
+            var totalCandidates = await _context.Candidates.CountAsync();
+            var totalApplications = await _context.Applications.CountAsync();
+            var totalInterviews = await _context.Interviews.CountAsync();
 
-        [HttpGet("application-status")]
-        public async Task<IActionResult> GetApplicationStatusCounts()
-        {
-            var counts = await _analyticsRepository.GetApplicationStatusCountsAsync();
-            return Ok(counts);
-        }
+            var applicationsByStatus = await _context.Applications
+                .GroupBy(a => a.Status)
+                .Select(g => new
+                {
+                    status = g.Key,
+                    count = g.Count()
+                })
+                .ToListAsync();
 
-        [HttpGet("applications-per-job")]
-        public async Task<IActionResult> GetApplicationsPerJob()
-        {
-            var counts = await _analyticsRepository.GetApplicationsPerJobAsync();
-            return Ok(counts);
+            var jobsByStatus = await _context.Jobs
+                .GroupBy(j => j.Status)
+                .Select(g => new
+                {
+                    status = g.Key,
+                    count = g.Count()
+                })
+                .ToListAsync();
+
+            var topJobsByApplications = await _context.Jobs
+                .Select(j => new
+                {
+                    jobId = j.Id,
+                    title = j.Title,
+                    applicationCount = j.Applications.Count
+                })
+                .OrderByDescending(x => x.applicationCount)
+                .ThenBy(x => x.jobId)
+                .Take(10)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                totalJobs,
+                totalCandidates,
+                totalApplications,
+                totalInterviews,
+                applicationsByStatus,
+                jobsByStatus,
+                topJobsByApplications
+            });
         }
     }
 }

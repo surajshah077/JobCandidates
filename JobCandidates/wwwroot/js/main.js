@@ -36,8 +36,8 @@ function updateAuthStatus() {
     if (currentUser) {
         status.classList.remove('alert-info');
         status.classList.add('alert-success');
-        if (title) title.innerText = 'Authenticated.';
-        if (details) details.innerText = `Logged in as ${currentUser.email} (${currentUser.role}).`;
+        if (title) title.innerText = 'Signed in';
+        if (details) details.innerText = `${currentUser.name || 'User'} (${currentUser.role || 'User'})`;
         if (emailEl) emailEl.innerText = currentUser.email || '-';
         if (roleEl) roleEl.innerText = currentUser.role || '-';
         if (logoutBtn) logoutBtn.disabled = false;
@@ -97,11 +97,56 @@ async function loadCurrentUser() {
     updateAuthStatus();
 }
 
+function disableButton(button, disabled, loadingText = 'Please wait...') {
+    if (!button) return;
+    if (disabled) {
+        button.dataset.originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = loadingText;
+    } else {
+        button.disabled = false;
+        button.innerHTML = button.dataset.originalText || button.innerHTML;
+    }
+}
+
+function safeFormHandler(formId, buttonId, handler, loadingText) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    const button = document.getElementById(buttonId);
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        try {
+            disableButton(button, true, loadingText);
+            await handler(e);
+        } catch (err) {
+            showMessage('danger', err.message || 'Something went wrong.', 7000);
+        } finally {
+            disableButton(button, false);
+        }
+
+        return false;
+    });
+
+    form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const tag = e.target.tagName.toLowerCase();
+            if (tag !== 'textarea') {
+                e.preventDefault();
+            }
+        }
+    });
+}
+
 /* AUTH PAGE */
 function initAuthPage() {
     const logoutBtn = document.getElementById('btnLogout');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
             try {
                 await apiRequest('POST', '/auth/logout', null, true);
             } catch {
@@ -112,85 +157,57 @@ function initAuthPage() {
         });
     }
 
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    name: document.getElementById('registerName').value.trim(),
-                    age: parseInt(document.getElementById('registerAge').value),
-                    gender: document.getElementById('registerGender').value,
-                    email: document.getElementById('registerEmail').value.trim(),
-                    role: document.getElementById('registerRole').value
-                };
+    safeFormHandler('registerForm', 'btnRegister', async () => {
+        const body = {
+            name: document.getElementById('registerName').value.trim(),
+            age: parseInt(document.getElementById('registerAge').value),
+            gender: document.getElementById('registerGender').value,
+            email: document.getElementById('registerEmail').value.trim(),
+            role: document.getElementById('registerRole').value
+        };
 
-                const result = await apiRequest('POST', '/auth/register', body);
-                document.getElementById('registerVerifyEmail').value = body.email;
-                showMessage('success', result.message || 'Registration OTP sent.', 5000);
-            } catch (err) {
-                showMessage('danger', 'Registration failed: ' + err.message, 7000);
-            }
-        });
-    }
+        const result = await apiRequest('POST', '/auth/register', body);
+        document.getElementById('registerVerifyEmail').value = body.email;
+        showMessage('success', result.message || 'Registration OTP sent.', 5000);
+    }, 'Sending OTP...');
 
-    const registerVerifyForm = document.getElementById('registerVerifyForm');
-    if (registerVerifyForm) {
-        registerVerifyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    email: document.getElementById('registerVerifyEmail').value.trim(),
-                    code: document.getElementById('registerOtpCode').value.trim()
-                };
+    safeFormHandler('registerVerifyForm', 'btnVerifyRegister', async (e) => {
+        const body = {
+            email: document.getElementById('registerVerifyEmail').value.trim(),
+            code: document.getElementById('registerOtpCode').value.trim()
+        };
 
-                const result = await apiRequest('POST', '/auth/verify-register-otp', body);
-                await loadCurrentUser();
-                showMessage('success', result.message || 'Account verified and logged in.', 4000);
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Verification failed: ' + err.message, 7000);
-            }
-        });
-    }
+        const result = await apiRequest('POST', '/auth/verify-register-otp', body);
+        await loadCurrentUser();
+        showMessage('success', result.message || 'Account verified and logged in.', 4000);
+        e.target.reset();
+    }, 'Verifying...');
 
-    const loginRequestForm = document.getElementById('loginRequestForm');
-    if (loginRequestForm) {
-        loginRequestForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    email: document.getElementById('loginEmail').value.trim()
-                };
+    safeFormHandler('loginRequestForm', 'btnRequestLoginOtp', async () => {
+        const body = {
+            email: document.getElementById('loginEmail').value.trim()
+        };
 
-                const result = await apiRequest('POST', '/auth/request-login-otp', body);
-                document.getElementById('loginVerifyEmail').value = body.email;
-                showMessage('success', result.message || 'Login OTP sent.', 5000);
-            } catch (err) {
-                showMessage('danger', 'Login OTP request failed: ' + err.message, 7000);
-            }
-        });
-    }
+        const result = await apiRequest('POST', '/auth/request-login-otp', body);
+        document.getElementById('loginVerifyEmail').value = body.email;
+        showMessage('success', result.message || 'Login OTP sent.', 5000);
+    }, 'Sending OTP...');
 
-    const loginVerifyForm = document.getElementById('loginVerifyForm');
-    if (loginVerifyForm) {
-        loginVerifyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const body = {
-                    email: document.getElementById('loginVerifyEmail').value.trim(),
-                    code: document.getElementById('loginOtpCode').value.trim()
-                };
+    safeFormHandler('loginVerifyForm', 'btnVerifyLogin', async (e) => {
+        const body = {
+            email: document.getElementById('loginVerifyEmail').value.trim(),
+            code: document.getElementById('loginOtpCode').value.trim()
+        };
 
-                const result = await apiRequest('POST', '/auth/verify-login-otp', body);
-                await loadCurrentUser();
-                showMessage('success', result.message || 'Logged in successfully.', 4000);
-                e.target.reset();
-            } catch (err) {
-                showMessage('danger', 'Login failed: ' + err.message, 7000);
-            }
-        });
-    }
+        const result = await apiRequest('POST', '/auth/verify-login-otp', body);
+        await loadCurrentUser();
+        showMessage('success', result.message || 'Logged in successfully.', 4000);
+        e.target.reset();
+
+        setTimeout(() => {
+            window.location.href = 'jobs.html';
+        }, 800);
+    }, 'Logging in...');
 }
 
 /* JOBS */
@@ -214,7 +231,7 @@ async function loadJobs() {
                 <td>${j.title}</td>
                 <td>${j.status ?? ''}</td>
                 <td>${j.location ?? ''}</td>
-                <td>${j.postedByEmail ?? ''}</td>
+                <td>${j.postedByName ? `${j.postedByName} (${j.postedByEmail ?? ''})` : (j.postedByEmail ?? '')}</td>
             `;
             table.appendChild(tr);
         });
@@ -246,22 +263,6 @@ function initJobsPage() {
                 await loadJobs();
             } catch (err) {
                 showMessage('danger', 'Failed to create job: ' + err.message, 7000);
-            }
-        });
-    }
-
-    const closeForm = document.getElementById('jobCloseForm');
-    if (closeForm) {
-        closeForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const id = document.getElementById('jobCloseId').value;
-                const result = await apiRequest('PUT', `/jobs/${id}/close`, null, true);
-                showMessage('success', `Job ${result.id} closed.`, 4000);
-                e.target.reset();
-                await loadJobs();
-            } catch (err) {
-                showMessage('danger', 'Failed to close job: ' + err.message, 7000);
             }
         });
     }
@@ -328,67 +329,6 @@ function initCandidatesPage() {
 
     if (document.getElementById('candidatesTable')) loadCandidates();
 }
-
-function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.innerText = value ?? '0';
-}
-
-function fillSimpleTable(tableId, rows, columns) {
-    const table = document.querySelector(`#${tableId} tbody`);
-    if (!table) return;
-
-    table.innerHTML = '';
-
-    if (!rows || !rows.length) {
-        table.innerHTML = `<tr><td colspan="${columns.length}" class="text-center text-muted">No data found.</td></tr>`;
-        return;
-    }
-
-    rows.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = columns.map(col => `<td>${row[col] ?? ''}</td>`).join('');
-        table.appendChild(tr);
-    });
-}
-
-async function loadAnalytics() {
-    if (!document.getElementById('metricTotalJobs')) return;
-
-    try {
-        const data = await apiRequest('GET', '/analytics', null, true);
-
-        setText('metricTotalJobs', data.totalJobs);
-        setText('metricTotalCandidates', data.totalCandidates);
-        setText('metricTotalApplications', data.totalApplications);
-        setText('metricTotalInterviews', data.totalInterviews);
-
-        fillSimpleTable('applicationStatusTable', data.applicationsByStatus || [], ['status', 'count']);
-        fillSimpleTable('jobStatusTable', data.jobsByStatus || [], ['status', 'count']);
-        fillSimpleTable('topJobsTable', data.topJobsByApplications || [], ['jobId', 'title', 'applicationCount']);
-    } catch (err) {
-        showMessage('danger', 'Failed to load analytics: ' + err.message, 7000);
-    }
-}
-
-function initAnalyticsPage() {
-    const refreshBtn = document.getElementById('btnRefreshAnalytics');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadAnalytics);
-    }
-
-    if (document.getElementById('metricTotalJobs')) {
-        loadAnalytics();
-    }
-}
-
-tr.innerHTML = `
-    <td>${j.id}</td>
-    <td>${j.title}</td>
-    <td>${j.status ?? ''}</td>
-    <td>${j.location ?? ''}</td>
-    <td>${j.postedByName ? `${j.postedByName} (${j.postedByEmail ?? ''})` : (j.postedByEmail ?? '')}</td>
-`;
 
 /* APPLICATIONS */
 async function loadApplications() {
@@ -466,7 +406,7 @@ async function loadInterviews() {
             tr.innerHTML = `
                 <td>${i.id}</td>
                 <td>${i.applicationId}</td>
-                <td>${i.interviewDate ?? ''}</td>
+                <td>${i.scheduledDate ?? ''}</td>
                 <td>${i.mode ?? ''}</td>
             `;
             table.appendChild(tr);
@@ -487,7 +427,7 @@ function initInterviewsPage() {
             try {
                 const body = {
                     applicationId: parseInt(document.getElementById('interviewApplicationId').value),
-                    interviewDate: document.getElementById('interviewDate').value,
+                    scheduledDate: document.getElementById('interviewDate').value,
                     mode: document.getElementById('interviewMode').value.trim(),
                     feedback: document.getElementById('interviewFeedback').value.trim()
                 };
@@ -505,11 +445,78 @@ function initInterviewsPage() {
     if (document.getElementById('interviewsTable')) loadInterviews();
 }
 
+/* ANALYTICS */
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value ?? '0';
+}
+
+function fillSimpleTable(tableId, rows, columns) {
+    const table = document.querySelector(`#${tableId} tbody`);
+    if (!table) return;
+
+    table.innerHTML = '';
+
+    if (!rows || !rows.length) {
+        table.innerHTML = `<tr><td colspan="${columns.length}" class="text-center text-muted">No data found.</td></tr>`;
+        return;
+    }
+
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = columns.map(col => `<td>${row[col] ?? ''}</td>`).join('');
+        table.appendChild(tr);
+    });
+}
+
+async function loadAnalytics() {
+    if (!document.getElementById('metricTotalJobs')) return;
+
+    try {
+        const data = await apiRequest('GET', '/analytics', null, true);
+        setText('metricTotalJobs', data.totalJobs);
+        setText('metricTotalCandidates', data.totalCandidates);
+        setText('metricTotalApplications', data.totalApplications);
+        setText('metricTotalInterviews', data.totalInterviews);
+
+        fillSimpleTable('applicationStatusTable', data.applicationsByStatus || [], ['status', 'count']);
+        fillSimpleTable('jobStatusTable', data.jobsByStatus || [], ['status', 'count']);
+        fillSimpleTable('topJobsTable', data.topJobsByApplications || [], ['jobId', 'title', 'applicationCount']);
+    } catch (err) {
+        showMessage('danger', 'Failed to load analytics: ' + err.message, 7000);
+    }
+}
+
+function initAnalyticsPage() {
+    const refreshBtn = document.getElementById('btnRefreshAnalytics');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadAnalytics);
+
+    if (document.getElementById('metricTotalJobs')) loadAnalytics();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadCurrentUser();
-    initAuthPage();
-    initJobsPage();
-    initCandidatesPage();
-    initApplicationsPage();
-    initInterviewsPage();
+    try {
+        const isAuthPage =
+            window.location.pathname.endsWith('/index.html') ||
+            window.location.pathname === '/' ||
+            window.location.pathname.endsWith('/');
+
+        if (isAuthPage) {
+            try {
+                await apiRequest('POST', '/auth/force-logout');
+            } catch {
+            }
+        }
+
+        await loadCurrentUser();
+        initAuthPage();
+        initJobsPage();
+        initCandidatesPage();
+        initApplicationsPage();
+        initInterviewsPage();
+        initAnalyticsPage();
+    } catch (err) {
+        console.error('Initialization error:', err);
+        showMessage('danger', 'Frontend initialization failed: ' + err.message, 8000);
+    }
 });
