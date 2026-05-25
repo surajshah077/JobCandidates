@@ -1,13 +1,12 @@
 ﻿using JobCandidates.DTOs;
 using JobCandidates.Model;
 using JobCandidates.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
 namespace JobCandidates.Controllers
 {
@@ -16,58 +15,48 @@ namespace JobCandidates.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ApplicationDbContext _db;
-        private readonly IConfiguration _config;
         private readonly IEmailService _emailService;
 
-        public AuthController(ApplicationDbContext db, IConfiguration config, IEmailService emailService)
+        public AuthController(ApplicationDbContext db, IEmailService emailService)
         {
             _db = db;
-            _config = config;
             _emailService = emailService;
         }
 
-        private string GenerateJwtToken(AppUser user)
+        private async Task SignInUserAsync(AppUser user)
         {
-            var jwtSection = _config.GetSection("Jwt");
-            var key = jwtSection["Key"] ?? throw new InvalidOperationException("Jwt:Key missing");
-            var issuer = jwtSection["Issuer"] ?? "JobCandidatesApi";
-            var audience = jwtSection["Audience"] ?? "JobCandidatesApiClient";
-
-            Console.WriteLine("======================================");
-            Console.WriteLine("[TOKEN GEN] Generating token");
-            Console.WriteLine($"[TOKEN GEN] Key: {key}");
-            Console.WriteLine($"[TOKEN GEN] Issuer: {issuer}");
-            Console.WriteLine($"[TOKEN GEN] Audience: {audience}");
-            Console.WriteLine($"[TOKEN GEN] Email: {user.Email}");
-            Console.WriteLine($"[TOKEN GEN] Role: {user.Role}");
-            Console.WriteLine("======================================");
-
             var claims = new List<Claim>
-    {
-        new Claim("email", user.Email),
-        new Claim("name", user.Name ?? ""),
-        new Claim("role", user.Role ?? "User")
-    };
+            {
+                new Claim(ClaimTypes.Name, user.Name ?? ""),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role ?? "User")
+            };
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var creds = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
 
-            var now = DateTime.UtcNow;
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                principal,
+                new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
+                });
+        }
 
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                notBefore: now.AddMinutes(-1),
-                expires: now.AddHours(2),
-                signingCredentials: creds);
+        [AllowAnonymous]
+        [HttpGet("unauthorized")]
+        public IActionResult UnauthorizedEndpoint()
+        {
+            return Unauthorized(new { message = "You must login first." });
+        }
 
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            Console.WriteLine($"[TOKEN GEN] Token: {tokenString}");
-            Console.WriteLine("======================================");
-
-            return tokenString;
+        [AllowAnonymous]
+        [HttpGet("forbidden")]
+        public IActionResult ForbiddenEndpoint()
+        {
+            return StatusCode(403, new { message = "You are not allowed to access this resource." });
         }
 
         [AllowAnonymous]
@@ -122,7 +111,7 @@ namespace JobCandidates.Controllers
 
         [AllowAnonymous]
         [HttpPost("verify-register-otp")]
-        public async Task<ActionResult<LoginResponseDTO>> VerifyRegisterOtp(OtpVerifyDTO dto)
+        public async Task<ActionResult> VerifyRegisterOtp(OtpVerifyDTO dto)
         {
             var pending = await _db.PendingRegistrations
                 .Where(x => x.Email == dto.Email &&
@@ -165,8 +154,12 @@ namespace JobCandidates.Controllers
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
-            var jwt = GenerateJwtToken(user);
-            return Ok(new LoginResponseDTO { Token = jwt });
+            await SignInUserAsync(user);
+
+            return Ok(new
+            {
+                message = "Account verified and logged in successfully."
+            });
         }
 
         [AllowAnonymous]
@@ -224,7 +217,7 @@ namespace JobCandidates.Controllers
 
         [AllowAnonymous]
         [HttpPost("verify-login-otp")]
-        public async Task<ActionResult<LoginResponseDTO>> VerifyLoginOtp(OtpVerifyDTO dto)
+        public async Task<ActionResult> VerifyLoginOtp(OtpVerifyDTO dto)
         {
             var otp = await _db.OtpCodes
                 .Where(o => o.Email == dto.Email &&
@@ -265,8 +258,12 @@ namespace JobCandidates.Controllers
             otp.Used = true;
             await _db.SaveChangesAsync();
 
-            var jwt = GenerateJwtToken(user);
-            return Ok(new LoginResponseDTO { Token = jwt });
+            await SignInUserAsync(user);
+
+            return Ok(new
+            {
+                message = "Logged in successfully."
+            });
         }
 
         [Authorize]
@@ -276,8 +273,18 @@ namespace JobCandidates.Controllers
             return Ok(new
             {
                 authenticated = true,
-                claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+                email = User.FindFirstValue(ClaimTypes.Email),
+                name = User.FindFirstValue(ClaimTypes.Name),
+                role = User.FindFirstValue(ClaimTypes.Role)
             });
+        }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new { message = "Logged out successfully." });
         }
 
         [Authorize(Roles = "Admin")]
