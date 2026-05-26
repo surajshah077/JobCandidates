@@ -41,12 +41,46 @@ function updateAuthStatus() {
 
 async function apiRequest(method, path, body = null, requireAuth = false) {
     const headers = { 'Content-Type': 'application/json' };
-    const response = await fetch(API_BASE + path, { method, headers, credentials: 'include', body: body ? JSON.stringify(body) : null });
+
+    const response = await fetch(API_BASE + path, {
+        method,
+        headers,
+        credentials: 'include',
+        body: body ? JSON.stringify(body) : null
+    });
+
     let data = null;
-    try { data = await response.json(); } catch { }
-    if (response.status === 401) { currentUser = null; updateAuthStatus(); if (requireAuth) throw new Error(data?.message || 'You must login first.'); }
-    if (response.status === 403) throw new Error(data?.message || 'You are not allowed to do this action.');
-    if (!response.ok) throw new Error(data?.message || `Request failed with status ${response.status}`);
+    let rawText = '';
+
+    try {
+        rawText = await response.text();
+        data = rawText ? JSON.parse(rawText) : null;
+    } catch {
+        data = rawText || null;
+    }
+
+    if (response.status === 401) {
+        currentUser = null;
+        updateAuthStatus();
+        if (requireAuth) throw new Error(data?.message || 'You must login first.');
+    }
+
+    if (response.status === 403) {
+        throw new Error(data?.message || 'You are not allowed to do this action.');
+    }
+
+    if (!response.ok) {
+        if (data?.message) throw new Error(data.message);
+        if (data?.title) throw new Error(data.title);
+        if (data?.errors) {
+            const details = Object.entries(data.errors)
+                .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
+                .join(' | ');
+            throw new Error(details);
+        }
+        throw new Error(typeof data === 'string' && data ? data : `Request failed with status ${response.status}`);
+    }
+
     return data;
 }
 
@@ -114,34 +148,72 @@ function initAuthPage() {
 async function loadJobs() {
     const table = document.querySelector('#jobsTable tbody');
     if (!table) return;
+
     try {
         const jobs = await apiRequest('GET', '/jobs');
         table.innerHTML = '';
-        if (!jobs.length) { table.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No jobs found.</td></tr>`; return; }
+
+        if (!jobs.length) {
+            table.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No jobs found.</td></tr>`;
+            return;
+        }
+
         jobs.forEach(j => {
+            const title = (j.title ?? '').replace(/'/g, "\\'");
+            const description = (j.description ?? '').replace(/'/g, "\\'");
+            const location = (j.location ?? '').replace(/'/g, "\\'");
+            const salaryRange = (j.salaryRange ?? '').replace(/'/g, "\\'");
+            const requiredSkills = (j.requiredSkills ?? '').replace(/'/g, "\\'");
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${j.id}</td>
-                <td>${j.title}</td>
+                <td>${j.title ?? ''}</td>
                 <td><span class="badge ${j.status === 'Closed' ? 'bg-secondary' : 'bg-success'}">${j.status ?? ''}</span></td>
                 <td>${j.location ?? ''}</td>
                 <td>${j.postedByName ? `${j.postedByName} (${j.postedByEmail ?? ''})` : (j.postedByEmail ?? '')}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editJob(${j.id}, '${(j.title || '').replace(/'/g, "\\'")}', '${(j.location || '').replace(/'/g, "\\'")}')">Edit</button>
+                    <button class="btn btn-sm btn-outline-warning me-1"
+                        onclick="editJob(${j.id}, '${title}', '${description}', '${location}', '${salaryRange}', '${requiredSkills}', '${j.status ?? ''}')">
+                        Edit
+                    </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteJob(${j.id})">Delete</button>
                 </td>`;
             table.appendChild(tr);
         });
-    } catch (err) { showMessage('danger', 'Failed to load jobs: ' + err.message, 7000); }
+    } catch (err) {
+        showMessage('danger', 'Failed to load jobs: ' + err.message, 7000);
+    }
 }
 
-window.editJob = function (id, title, location) {
-    const newTitle = prompt('New title:', title);
+window.editJob = function (id, title, description, location, salaryRange, requiredSkills, status) {
+    const newTitle = prompt('Title:', title);
     if (newTitle === null) return;
-    const newLocation = prompt('New location:', location);
+
+    const newDescription = prompt('Description:', description);
+    if (newDescription === null) return;
+
+    const newLocation = prompt('Location:', location);
     if (newLocation === null) return;
-    apiRequest('PUT', `/jobs/${id}`, { title: newTitle, location: newLocation }, true)
-        .then(() => { showMessage('success', 'Job updated.', 4000); loadJobs(); })
+
+    const newSalaryRange = prompt('Salary Range:', salaryRange);
+    if (newSalaryRange === null) return;
+
+    const newRequiredSkills = prompt('Required Skills (comma separated):', requiredSkills);
+    if (newRequiredSkills === null) return;
+
+    apiRequest('PUT', `/jobs/${id}`, {
+        title: newTitle.trim(),
+        description: newDescription.trim(),
+        location: newLocation.trim(),
+        salaryRange: newSalaryRange.trim(),
+        requiredSkills: newRequiredSkills.trim(),
+        status: status || 'Open'
+    }, true)
+        .then(() => {
+            showMessage('success', 'Job updated.', 4000);
+            loadJobs();
+        })
         .catch(err => showMessage('danger', 'Failed to update job: ' + err.message, 7000));
 };
 
@@ -186,48 +258,103 @@ function initJobsPage() {
     if (document.getElementById('jobsTable')) loadJobs();
 }
 
-/* CANDIDATES */
+/* /* CANDIDATES */
+const candidateEmailCache = {};
+
 async function loadCandidates() {
     const table = document.querySelector('#candidatesTable tbody');
     if (!table) return;
+
     try {
         const candidates = await apiRequest('GET', '/candidates');
         table.innerHTML = '';
-        if (!candidates.length) { table.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No candidates found.</td></tr>`; return; }
+
+        if (!candidates.length) {
+            table.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No candidates found.</td></tr>`;
+            return;
+        }
+
         candidates.forEach(c => {
+            if (c.email && c.email.trim() !== '') {
+                candidateEmailCache[c.id] = c.email;
+            }
+
+            const resolvedEmail = (c.email && c.email.trim() !== '')
+                ? c.email
+                : (candidateEmailCache[c.id] || '');
+
+            const name = (c.name || '').replace(/'/g, "\\'");
+            const email = resolvedEmail.replace(/'/g, "\\'");
+            const phone = (c.phone || '').replace(/'/g, "\\'");
+            const education = (c.education || '').replace(/'/g, "\\'");
+            const skills = (c.skills || '').replace(/'/g, "\\'");
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${c.id}</td>
-                <td>${c.name}</td>
-                <td>${c.email}</td>
+                <td>${c.name || ''}</td>
+                <td>${resolvedEmail}</td>
                 <td>${c.experienceYears ?? 0}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editCandidate(${c.id}, '${(c.name || '').replace(/'/g, "\\'")}', '${(c.phone || '').replace(/'/g, "\\'")}', '${(c.education || '').replace(/'/g, "\\'")}', ${c.experienceYears ?? 0}, '${(c.skills || '').replace(/'/g, "\\'")}')">Edit</button>
+                    <button class="btn btn-sm btn-outline-warning me-1"
+                        onclick="editCandidate(${c.id}, '${name}', '${email}', '${phone}', '${education}', ${c.experienceYears ?? 0}, '${skills}')">
+                        Edit
+                    </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteCandidate(${c.id})">Delete</button>
                 </td>`;
             table.appendChild(tr);
         });
-    } catch (err) { showMessage('danger', 'Failed to load candidates: ' + err.message, 7000); }
+    } catch (err) {
+        showMessage('danger', 'Failed to load candidates: ' + err.message, 7000);
+    }
 }
 
-window.editCandidate = function (id, name, phone, education, experienceYears, skills) {
-    const newName = prompt('Name:', name); if (newName === null) return;
-    const newPhone = prompt('Phone:', phone); if (newPhone === null) return;
-    const newEducation = prompt('Education:', education); if (newEducation === null) return;
-    const newExp = prompt('Experience Years:', experienceYears); if (newExp === null) return;
-    const newSkills = prompt('Skills:', skills); if (newSkills === null) return;
-    apiRequest('PUT', `/candidates/${id}`, { name: newName, phone: newPhone, education: newEducation, experienceYears: parseInt(newExp) || 0, skills: newSkills }, true)
-        .then(() => { showMessage('success', 'Candidate updated.', 4000); loadCandidates(); })
-        .catch(err => showMessage('danger', 'Failed to update: ' + err.message, 7000));
+window.editCandidate = function (id, name, email, phone, education, experienceYears, skills) {
+    const newName = prompt('Name:', name);
+    if (newName === null) return;
+
+    const newEmail = prompt('Email:', email);
+    if (newEmail === null) return;
+
+    const newPhone = prompt('Phone:', phone);
+    if (newPhone === null) return;
+
+    const newEducation = prompt('Education:', education);
+    if (newEducation === null) return;
+
+    const newExp = prompt('Experience Years:', experienceYears);
+    if (newExp === null) return;
+
+    const newSkills = prompt('Skills:', skills);
+    if (newSkills === null) return;
+
+    apiRequest('PUT', `/candidates/${id}`, {
+        name: newName.trim(),
+        email: newEmail.trim(),
+        phone: newPhone.trim(),
+        education: newEducation.trim(),
+        experienceYears: parseInt(newExp) || 0,
+        skills: newSkills.trim()
+    }, true)
+        .then(() => {
+            candidateEmailCache[id] = newEmail.trim();
+            showMessage('success', 'Candidate updated.', 4000);
+            loadCandidates();
+        })
+        .catch(err => showMessage('danger', 'Failed to update candidate: ' + err.message, 7000));
 };
 
 window.deleteCandidate = function (id) {
     if (!confirm(`Delete candidate #${id}?`)) return;
+
     apiRequest('DELETE', `/candidates/${id}`, null, true)
-        .then(() => { showMessage('success', 'Candidate deleted.', 4000); loadCandidates(); })
+        .then(() => {
+            delete candidateEmailCache[id];
+            showMessage('success', 'Candidate deleted.', 4000);
+            loadCandidates();
+        })
         .catch(err => showMessage('danger', 'Failed to delete: ' + err.message, 7000));
 };
-
 function initCandidatesPage() {
     const refreshBtn = document.getElementById('btnRefreshCandidates');
     if (refreshBtn) refreshBtn.addEventListener('click', loadCandidates);
