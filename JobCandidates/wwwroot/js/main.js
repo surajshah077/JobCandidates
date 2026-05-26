@@ -370,6 +370,86 @@ function initInterviewsPage() {
     if (document.getElementById('interviewsTable')) loadInterviews();
 }
 
+/* RANKING */
+let currentRankingJobId = null;
+
+async function loadRanking(jobId) {
+    const table = document.querySelector('#rankingTable tbody');
+    const summary = document.getElementById('rankingSummary');
+    if (!table) return;
+
+    try {
+        const rankedCandidates = await apiRequest('GET', `/ranking/job/${jobId}`, null, true);
+
+        table.innerHTML = '';
+
+        if (!rankedCandidates.length) {
+            table.innerHTML = `<tr><td colspan="6" class="text-center text-muted">No ranked candidates found for this job.</td></tr>`;
+            if (summary) summary.innerText = `Job ID ${jobId}: 0 candidates returned.`;
+            return;
+        }
+
+        rankedCandidates.forEach((c, index) => {
+            const tr = document.createElement('tr');
+
+            const badgeClass =
+                index === 0 ? 'bg-success' :
+                    index === 1 ? 'bg-primary' :
+                        index === 2 ? 'bg-info text-dark' :
+                            'bg-secondary';
+
+            tr.innerHTML = `
+                <td><span class="badge ${badgeClass}">#${index + 1}</span></td>
+                <td>${c.candidateId}</td>
+                <td>${c.candidateName ?? ''}</td>
+                <td>${c.experienceYears ?? 0}</td>
+                <td>${c.skillMatchScore ?? 0}</td>
+                <td><strong>${c.totalScore ?? 0}</strong></td>
+            `;
+
+            table.appendChild(tr);
+        });
+
+        if (summary) {
+            const top = rankedCandidates[0];
+            summary.innerText = `Job ID ${jobId}: ${rankedCandidates.length} candidates ranked. Top candidate is ${top.candidateName} with score ${top.totalScore}.`;
+        }
+    } catch (err) {
+        table.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Failed to load ranking.</td></tr>`;
+        if (summary) summary.innerText = '';
+        showMessage('danger', 'Failed to load ranking: ' + err.message, 7000);
+    }
+}
+
+function initRankingPage() {
+    const form = document.getElementById('rankingForm');
+    const refreshBtn = document.getElementById('btnRefreshRanking');
+    const input = document.getElementById('rankingJobId');
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const jobId = parseInt(input.value);
+            if (!jobId || jobId <= 0) {
+                showMessage('warning', 'Please enter a valid Job ID.', 4000);
+                return;
+            }
+            currentRankingJobId = jobId;
+            await loadRanking(jobId);
+        });
+    }
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            if (!currentRankingJobId) {
+                showMessage('info', 'Enter a Job ID first to load ranking.', 4000);
+                return;
+            }
+            await loadRanking(currentRankingJobId);
+        });
+    }
+}
+
 /* ANALYTICS */
 function setText(id, value) { const el = document.getElementById(id); if (el) el.innerText = value ?? '0'; }
 
@@ -402,8 +482,21 @@ function initAnalyticsPage() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const isAuthPage = window.location.pathname.endsWith('/index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/');
-        if (isAuthPage) { try { await apiRequest('POST', '/auth/force-logout'); } catch { } }
+        if (isAuthPage) {
+            try { await apiRequest('POST', '/auth/force-logout'); } catch { }
+        }
+
         await loadCurrentUser();
-        initAuthPage(); initJobsPage(); initCandidatesPage(); initApplicationsPage(); initInterviewsPage(); initAnalyticsPage();
-    } catch (err) { console.error('Initialization error:', err); showMessage('danger', 'Frontend initialization failed: ' + err.message, 8000); }
+
+        initAuthPage();
+        initJobsPage();
+        initCandidatesPage();
+        initApplicationsPage();
+        initInterviewsPage();
+        initRankingPage();
+        initAnalyticsPage();
+    } catch (err) {
+        console.error('Initialization error:', err);
+        showMessage('danger', 'Frontend initialization failed: ' + err.message, 8000);
+    }
 });
