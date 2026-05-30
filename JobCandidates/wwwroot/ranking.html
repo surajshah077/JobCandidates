@@ -19,13 +19,13 @@
             <a class="nav-link active" href="/ranking.html">Ranking</a>
             <a class="nav-link" href="/analytics.html">Analytics</a>
         </div>
-        <button class="btn btn-outline-light ms-auto" onclick="logout()">Logout</button>
+        <button class="btn btn-outline-light ms-auto" id="btnLogout">Logout</button>
     </nav>
 
     <div class="container-fluid mt-4">
         <div id="messages"></div>
 
-        <div class="alert alert-success" id="authStatus">
+        <div id="authStatus" class="alert alert-success">
             <strong>Signed in</strong>
             <span id="authDetails">User (Role)</span>
         </div>
@@ -46,11 +46,11 @@
                             <label class="form-label">API Version</label>
                             <div class="d-flex align-items-center gap-3 mb-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="rankingVersion" id="rankingV1" value="v1">
+                                    <input class="form-check-input" type="radio" name="rankingVersion" id="rankingV1" value="v1" checked>
                                     <label class="form-check-label" for="rankingV1">V1 <span class="badge bg-secondary ms-1">Classic</span></label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="rankingVersion" id="rankingV2" value="v2" checked>
+                                    <input class="form-check-input" type="radio" name="rankingVersion" id="rankingV2" value="v2">
                                     <label class="form-check-label" for="rankingV2">V2 <span class="badge bg-success ms-1">New</span></label>
                                 </div>
                             </div>
@@ -65,10 +65,10 @@
                         <strong>📊 Scoring Formula</strong>
                     </div>
                     <div class="card-body">
-                        <div><strong>Skill Match Score</strong> = matched skills × 10</div>
-                        <div><strong>Experience Score</strong> = experience years × 5</div>
-                        <div><strong>AI Score</strong> = semantic similarity × 100</div>
-                        <div><strong>Total Score</strong> = weighted combination of rule score + AI score</div>
+                        <div><strong>V1 Skill Match</strong> = matched skills × 10</div>
+                        <div><strong>V1 Experience</strong> = experience years × 5</div>
+                        <div><strong>V2 AI Score</strong> = semantic similarity × 100</div>
+                        <div><strong>V2 Total</strong> = weighted rule score + AI score</div>
                     </div>
                 </div>
             </div>
@@ -91,24 +91,14 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <strong>🏆 Ranked Candidates</strong>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-secondary" id="rankingVersionBadge">V2</span>
+                            <span class="badge bg-secondary" id="rankingVersionBadge">V1</span>
                             <button class="btn btn-sm btn-outline-primary" type="button" id="btnRefreshRanking">↻ Refresh</button>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="candidatesTable" class="table table-striped table-bordered align-middle">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Rank</th>
-                                        <th>ID</th>
-                                        <th>Candidate Name</th>
-                                        <th>Experience (yrs)</th>
-                                        <th>Score</th>
-                                        <th>Matched Skills</th>
-                                        <th>Semantic %</th>
-                                    </tr>
-                                </thead>
+                            <table id="rankingTable" class="table table-striped table-bordered align-middle">
+                                <thead id="rankingTableHead" class="table-dark"></thead>
                                 <tbody></tbody>
                             </table>
                         </div>
@@ -141,7 +131,7 @@
                                     <div class="col-12"><input id="aqRequiredSkills" class="form-control" placeholder="Required Skills"></div>
                                     <div class="col-md-6"><input id="aqCandidateSkills" class="form-control" placeholder="Candidate Skills"></div>
                                     <div class="col-md-6"><input id="aqExperienceYears" type="number" class="form-control" placeholder="Experience Years"></div>
-                                    <div class="col-12"><button class="btn btn-primary mt-2" onclick="generateQuestions()">Generate Questions</button></div>
+                                    <div class="col-12"><button class="btn btn-primary mt-2" type="button" onclick="generateQuestions()">Generate Questions</button></div>
                                 </div>
                                 <pre id="aqResult" class="mt-3 p-3 bg-light border rounded" style="white-space: pre-wrap; min-height: 120px;"></pre>
                             </div>
@@ -155,7 +145,7 @@
                                     <div class="col-md-4"><input id="erExperienceYears" type="number" class="form-control" placeholder="Experience Years"></div>
                                     <div class="col-md-6"><input id="erSemanticScore" type="number" step="0.01" class="form-control" placeholder="Semantic Score (0-1)"></div>
                                     <div class="col-md-6"><input id="erCombinedScore" type="number" step="0.01" class="form-control" placeholder="Combined Score"></div>
-                                    <div class="col-12"><button class="btn btn-primary mt-2" onclick="explainRanking()">Explain Ranking</button></div>
+                                    <div class="col-12"><button class="btn btn-primary mt-2" type="button" onclick="explainRanking()">Explain Ranking</button></div>
                                 </div>
                                 <pre id="erResult" class="mt-3 p-3 bg-light border rounded" style="white-space: pre-wrap; min-height: 120px;"></pre>
                             </div>
@@ -172,7 +162,7 @@
                                         </select>
                                     </div>
                                     <div class="col-md-6"><input id="etOptionalNotes" class="form-control" placeholder="Optional Notes"></div>
-                                    <div class="col-12"><button class="btn btn-primary mt-2" onclick="generateEmailTemplate()">Generate Email</button></div>
+                                    <div class="col-12"><button class="btn btn-primary mt-2" type="button" onclick="generateEmailTemplate()">Generate Email</button></div>
                                 </div>
                                 <pre id="etResult" class="mt-3 p-3 bg-light border rounded" style="white-space: pre-wrap; min-height: 120px;"></pre>
                             </div>
