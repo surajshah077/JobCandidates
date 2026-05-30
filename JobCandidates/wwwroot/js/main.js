@@ -545,52 +545,45 @@ async function loadRanking(jobId, version = 'v1') {
     const versionBadge = document.getElementById('rankingVersionBadge');
     if (!table) return;
 
-    const colspan = 7;
-
-    // Update version badge
     if (versionBadge) {
         versionBadge.textContent = version.toUpperCase();
         versionBadge.className = `badge ${version === 'v2' ? 'bg-success' : 'bg-secondary'}`;
     }
 
-    // Hide v2 job info card by default
     if (v2Card) v2Card.classList.add('d-none');
     if (summary) summary.style.display = 'none';
 
-    // Show loading
-    table.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-muted py-3">
+    table.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">
         <span class="spinner-border spinner-border-sm me-2"></span>Loading ranking...
     </td></tr>`;
 
     try {
         let rankedCandidates = [];
+        let jobInfo = null;
 
         if (version === 'v2') {
-            // V2: /api/Ranking/v2/{jobId} — returns { jobId, jobTitle, requiredSkills, rankedCandidates: [...] }
             const result = await apiRequest('GET', `/Ranking/v2/${jobId}`);
+            jobInfo = result;
 
-            // Populate v2 job info card
             if (v2Card) {
-                document.getElementById('v2JobId').textContent = result.jobId ?? jobId;
-                document.getElementById('v2JobTitle').textContent = result.jobTitle ?? '-';
-                document.getElementById('v2RequiredSkills').textContent = result.requiredSkills ?? '-';
+                const jobIdEl = document.getElementById('v2JobId');
+                const titleEl = document.getElementById('v2JobTitle');
+                const skillsEl = document.getElementById('v2RequiredSkills');
+                if (jobIdEl) jobIdEl.textContent = result.jobId ?? jobId;
+                if (titleEl) titleEl.textContent = result.jobTitle ?? '-';
+                if (skillsEl) skillsEl.textContent = result.requiredSkills ?? '-';
                 v2Card.classList.remove('d-none');
             }
 
-            // V2 response may have candidates in result.rankedCandidates or directly as array
-            rankedCandidates = Array.isArray(result) ? result : (result.rankedCandidates ?? result.candidates ?? []);
-
+            rankedCandidates = Array.isArray(result) ? result : (result.rankedCandidates ?? []);
         } else {
-            // V1: /api/ranking/job/{jobId} — returns array directly
             rankedCandidates = await apiRequest('GET', `/ranking/job/${jobId}`);
         }
 
         table.innerHTML = '';
 
         if (!rankedCandidates || !rankedCandidates.length) {
-            table.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-muted py-4">
-                No ranked candidates found for Job ID ${jobId}.
-            </td></tr>`;
+            table.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-4">No ranked candidates found.</td></tr>`;
             return;
         }
 
@@ -604,7 +597,7 @@ async function loadRanking(jobId, version = 'v1') {
                 ? `<span style="font-size:1.2rem">${medals[index]}</span>`
                 : `<span class="badge bg-secondary">#${index + 1}</span>`;
 
-            const experienceScore = (c.experienceYears ?? 0) * 5;
+            const experienceScore = c.experienceYears * 5;
             const skillScore = c.skillMatchScore ?? 0;
             const totalScore = c.totalScore ?? (skillScore + experienceScore);
 
@@ -626,15 +619,12 @@ async function loadRanking(jobId, version = 'v1') {
             summary.innerHTML = `
                 <strong>Job ID ${jobId}</strong> [${version.toUpperCase()}] — 
                 ${rankedCandidates.length} candidates ranked. 
-                🏆 Top: <strong>${top.candidateName}</strong> with score <strong>${top.totalScore ?? ((top.skillMatchScore ?? 0) + (top.experienceYears ?? 0) * 5)}</strong>.
+                Top: <strong>${top.candidateName}</strong> with score <strong>${top.totalScore ?? ((top.skillMatchScore ?? 0) + (top.experienceYears ?? 0) * 5)}</strong>.
             `;
         }
 
     } catch (err) {
-        table.innerHTML = `<tr><td colspan="${colspan}" class="text-center text-danger py-3">
-            ⚠️ ${err.message}
-        </td></tr>`;
-        if (summary) summary.style.display = 'none';
+        table.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Failed to load ranking: ${err.message}</td></tr>`;
         showMessage('danger', 'Failed to load ranking: ' + err.message, 7000);
     }
 }
