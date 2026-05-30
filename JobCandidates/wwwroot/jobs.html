@@ -21,125 +21,130 @@
             z-index: 1080;
             width: min(420px, calc(100vw - 32px));
         }
-
-        .table-wrap {
-            max-height: 420px;
-            overflow: auto;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: .75rem;
-        }
     </style>
-
-   
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark navbar-expand">
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="index.html">JobCandidates</a>
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link active" href="jobs.html">Jobs</a></li>
-                <li class="nav-item"><a class="nav-link" href="candidates.html">Candidates</a></li>
-                <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
-                <li class="nav-item"><a class="nav-link" href="interviews.html">Interviews</a></li>
-                <li class="nav-item"><a class="nav-link" href="ranking.html">Ranking</a></li>
-                <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
-            </ul>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Auth</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="jobs.html">Jobs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="candidates.html">Candidates</a></li>
+                    <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
+                    <li class="nav-item"><a class="nav-link" href="interviews.html">Interviews</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ranking.html">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
+                </ul>
+                <button class="btn btn-outline-light btn-sm" id="btnLogout" disabled>Logout</button>
+            </div>
         </div>
     </nav>
 
     <div id="messages"></div>
 
     <div class="container py-4">
-        <div class="alert alert-info d-flex justify-content-between align-items-center" id="authStatus">
+
+        <div class="alert alert-info d-flex justify-content-between align-items-center mb-3" id="authStatus">
             <div>
                 <strong>Not authenticated.</strong>
-                <span id="authDetails">Create an account or login to continue.</span>
+                <span id="authDetails" class="ms-2">Create an account or login to continue.</span>
             </div>
-            <button class="btn btn-sm btn-outline-secondary" id="btnLogout">Logout</button>
         </div>
 
-        <div class="row g-3">
-            <div class="col-lg-5">
+        <div class="row g-4">
+
+            <!-- Left: Forms -->
+            <div class="col-lg-4">
+
+                <!-- Create Job -->
                 <div class="card">
-                    <div class="card-header">Create Job (Admin / Recruiter)</div>
+                    <div class="card-header fw-semibold">➕ Create Job</div>
                     <div class="card-body">
-                        <form id="jobCreateForm">
+                        <form id="jobCreateForm" novalidate>
                             <div class="mb-2">
-                                <label class="form-label">Title</label>
-                                <input class="form-control" id="jobTitle" required />
+                                <label class="form-label" for="jobTitle">Title</label>
+                                <input class="form-control" id="jobTitle" placeholder="e.g. Frontend Developer" required />
                             </div>
                             <div class="mb-2">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control" id="jobDescription" rows="3" required></textarea>
+                                <label class="form-label" for="jobDescription">Description</label>
+                                <textarea class="form-control" id="jobDescription" rows="3" placeholder="Job responsibilities..." required></textarea>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label">Location</label>
-                                <input class="form-control" id="jobLocation" required />
+                                <label class="form-label" for="jobLocation">Location</label>
+                                <input class="form-control" id="jobLocation" placeholder="e.g. Berlin" required />
                             </div>
                             <div class="mb-2">
-                                <label class="form-label">Salary Range</label>
-                                <input class="form-control" id="jobSalaryRange" />
+                                <label class="form-label" for="jobSalaryRange">Salary Range</label>
+                                <input class="form-control" id="jobSalaryRange" placeholder="e.g. 50,000 - 70,000 EUR" />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Required Skills</label>
-                                <input class="form-control" id="jobRequiredSkills" required />
+                                <label class="form-label" for="jobRequiredSkills">Required Skills</label>
+                                <input class="form-control" id="jobRequiredSkills" placeholder="e.g. C#, React, SQL" required />
+                                <div class="form-text">Comma-separated list of skills.</div>
                             </div>
-                            <button class="btn btn-primary w-100" type="submit">Create Job</button>
+                            <button class="btn btn-primary w-100" id="btnCreateJob" type="submit">Create Job</button>
                         </form>
                     </div>
                 </div>
 
+                <!-- Close Job -->
                 <div class="card mt-3">
-                    <div class="card-header">Close Job</div>
+                    <div class="card-header fw-semibold">🔒 Close Job</div>
                     <div class="card-body">
-                        <form id="jobCloseForm">
+                        <form id="jobCloseForm" novalidate>
                             <div class="mb-3">
-                                <label class="form-label">Job ID</label>
-                                <input class="form-control" id="jobCloseId" type="number" min="1" required />
+                                <label class="form-label" for="jobCloseId">Job ID</label>
+                                <input class="form-control" id="jobCloseId" type="number" min="1" placeholder="Enter Job ID to close" required />
                             </div>
-                            <button class="btn btn-warning w-100" type="submit">Close Job</button>
+                            <button class="btn btn-warning w-100" id="btnCloseJob" type="submit">Close Job</button>
                         </form>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: Jobs Table -->
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-semibold">📋 Jobs List</span>
+                        <button class="btn btn-outline-primary btn-sm" id="btnRefreshJobs">↻ Refresh</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+                            <table class="table table-striped table-hover align-middle mb-0" id="jobsTable">
+                                <thead class="table-dark sticky-top">
+                                    <tr>
+                                        <th style="width:50px;">ID</th>
+                                        <th>Title</th>
+                                        <th style="width:90px;">Status</th>
+                                        <th>Location</th>
+                                        <th>Posted By</th>
+                                        <th style="width:130px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <span class="spinner-border spinner-border-sm me-2"></span>Loading jobs...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="col-lg-7">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div class="section-title mb-0">Jobs List</div>
-                    <button class="btn btn-sm btn-outline-primary" id="btnRefreshJobs">Refresh</button>
-                </div>
-                <div class="table-responsive table-wrap">
-                    <table class="table table-striped table-bordered" id="jobsTable">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Id</th>
-                                <th>Title</th>
-                                <th>Status</th>
-                                <th>Location</th>
-                                <th>Posted By</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-            </div>
         </div>
     </div>
 
-    tr.innerHTML = `
-    <td>${j.id}</td>
-    <td>${j.title}</td>
-    <td>${j.status ?? ''}</td>
-    <td>${j.location ?? ''}</td>
-    <td>${j.postedByName ? `${j.postedByName} (${j.postedByEmail ?? ''})` : (j.postedByEmail ?? '')}</td>
-    `;
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
-
 </body>
 </html>

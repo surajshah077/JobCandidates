@@ -24,17 +24,24 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark navbar-expand">
+    <nav class="navbar navbar-dark bg-dark navbar-expand-lg">
         <div class="container-fluid">
             <a class="navbar-brand" href="index.html">JobCandidates</a>
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="jobs.html">Jobs</a></li>
-                <li class="nav-item"><a class="nav-link" href="candidates.html">Candidates</a></li>
-                <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
-                <li class="nav-item"><a class="nav-link" href="interviews.html">Interviews</a></li>
-                <li class="nav-item"><a class="nav-link" href="ranking.html">Ranking</a></li>
-                <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
-            </ul>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Auth</a></li>
+                    <li class="nav-item"><a class="nav-link" href="jobs.html">Jobs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="candidates.html">Candidates</a></li>
+                    <li class="nav-item"><a class="nav-link" href="applications.html">Applications</a></li>
+                    <li class="nav-item"><a class="nav-link" href="interviews.html">Interviews</a></li>
+                    <li class="nav-item"><a class="nav-link" href="ranking.html">Ranking</a></li>
+                    <li class="nav-item"><a class="nav-link" href="analytics.html">Analytics</a></li>
+                </ul>
+                <button class="btn btn-outline-light btn-sm" id="btnLogout" type="button" disabled>Logout</button>
+            </div>
         </div>
     </nav>
 
@@ -44,15 +51,15 @@
         <div class="alert alert-info d-flex justify-content-between align-items-center" id="authStatus">
             <div>
                 <strong>Not authenticated.</strong>
-                <span id="authDetails">Please login first.</span>
+                <span id="authDetails" class="ms-2">Please login first.</span>
             </div>
-            <button class="btn btn-sm btn-outline-secondary" id="btnLogout" type="button">Logout</button>
         </div>
 
         <div class="row g-3">
+            <!-- Left Column -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">Create Account</div>
+                    <div class="card-header fw-semibold">Create Account</div>
                     <div class="card-body">
                         <form id="registerForm" novalidate>
                             <div class="mb-2">
@@ -69,7 +76,7 @@
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
-                                    <option value="PreferNotToSay" selected>PreferNotToSay</option>
+                                    <option value="PreferNotToSay" selected>Prefer Not To Say</option>
                                 </select>
                             </div>
                             <div class="mb-2">
@@ -89,7 +96,7 @@
                 </div>
 
                 <div class="card mt-3">
-                    <div class="card-header">Verify Registration OTP</div>
+                    <div class="card-header fw-semibold">Verify Registration OTP</div>
                     <div class="card-body">
                         <form id="registerVerifyForm" novalidate>
                             <div class="mb-2">
@@ -98,7 +105,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="registerOtpCode">OTP Code</label>
-                                <input class="form-control" id="registerOtpCode" required />
+                                <input class="form-control" id="registerOtpCode" required placeholder="Enter 6-digit OTP" />
                             </div>
                             <button class="btn btn-success w-100" id="btnVerifyRegister" type="submit">Verify & Login</button>
                         </form>
@@ -106,9 +113,10 @@
                 </div>
             </div>
 
+            <!-- Right Column -->
             <div class="col-lg-6">
                 <div class="card">
-                    <div class="card-header">Request Login OTP</div>
+                    <div class="card-header fw-semibold">Request Login OTP</div>
                     <div class="card-body">
                         <form id="loginRequestForm" novalidate>
                             <div class="mb-3">
@@ -121,7 +129,7 @@
                 </div>
 
                 <div class="card mt-3">
-                    <div class="card-header">Verify Login OTP</div>
+                    <div class="card-header fw-semibold">Verify Login OTP</div>
                     <div class="card-body">
                         <form id="loginVerifyForm" novalidate>
                             <div class="mb-2">
@@ -130,7 +138,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="loginOtpCode">OTP Code</label>
-                                <input class="form-control" id="loginOtpCode" required />
+                                <input class="form-control" id="loginOtpCode" required placeholder="Enter 6-digit OTP" />
                             </div>
                             <button class="btn btn-success w-100" id="btnVerifyLogin" type="submit">Login</button>
                         </form>
@@ -138,10 +146,10 @@
                 </div>
 
                 <div class="card mt-3">
-                    <div class="card-header">Current User</div>
+                    <div class="card-header fw-semibold">Current User</div>
                     <div class="card-body">
-                        <div><strong>Email:</strong> <span id="currentUserEmail">-</span></div>
-                        <div><strong>Role:</strong> <span id="currentUserRole">-</span></div>
+                        <p class="mb-1"><strong>Email:</strong> <span id="currentUserEmail">-</span></p>
+                        <p class="mb-0"><strong>Role:</strong> <span id="currentUserRole">-</span></p>
                     </div>
                 </div>
             </div>
