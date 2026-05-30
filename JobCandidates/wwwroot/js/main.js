@@ -563,6 +563,7 @@ async function loadRanking(jobId, version = 'v1') {
 
         if (version === 'v2') {
             const result = await apiRequest('GET', `/Ranking/v2/${jobId}`);
+            rankedCandidates = result.rankedCandidates ?? [];
             jobInfo = result;
 
             if (v2Card) {
@@ -709,6 +710,70 @@ function initAnalyticsPage() {
     const refreshBtn = document.getElementById('btnRefreshAnalytics');
     if (refreshBtn) refreshBtn.addEventListener('click', loadAnalytics);
     if (document.getElementById('metricTotalJobs')) loadAnalytics();
+}
+
+// Assistant
+async function postJson(url, data) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+}
+
+async function generateQuestions() {
+    const payload = {
+        jobTitle: document.getElementById('aqJobTitle').value,
+        jobDescription: document.getElementById('aqJobDescription').value,
+        requiredSkills: document.getElementById('aqRequiredSkills').value,
+        candidateName: document.getElementById('aqCandidateName').value,
+        candidateSkills: document.getElementById('aqCandidateSkills').value,
+        experienceYears: parseInt(document.getElementById('aqExperienceYears').value || '0', 10)
+    };
+
+    try {
+        const data = await postJson('/api/assistant/generate-questions', payload);
+        document.getElementById('aqResult').textContent = data.content || '';
+    } catch (e) {
+        document.getElementById('aqResult').textContent = 'Error: ' + e.message;
+    }
+}
+
+async function explainRanking() {
+    const payload = {
+        jobTitle: document.getElementById('erJobTitle').value,
+        candidateName: document.getElementById('erCandidateName').value,
+        matchedSkillCount: parseInt(document.getElementById('erMatchedSkillCount').value || '0', 10),
+        totalRequiredSkills: parseInt(document.getElementById('erTotalRequiredSkills').value || '0', 10),
+        experienceYears: parseInt(document.getElementById('erExperienceYears').value || '0', 10),
+        semanticScore: parseFloat(document.getElementById('erSemanticScore').value || '0'),
+        combinedScore: parseFloat(document.getElementById('erCombinedScore').value || '0')
+    };
+
+    try {
+        const data = await postJson('/api/assistant/explain-ranking', payload);
+        document.getElementById('erResult').textContent = data.content || '';
+    } catch (e) {
+        document.getElementById('erResult').textContent = 'Error: ' + e.message;
+    }
+}
+
+async function generateEmailTemplate() {
+    const payload = {
+        candidateName: document.getElementById('etCandidateName').value,
+        jobTitle: document.getElementById('etJobTitle').value,
+        emailType: document.getElementById('etEmailType').value,
+        optionalNotes: document.getElementById('etOptionalNotes').value
+    };
+
+    try {
+        const data = await postJson('/api/assistant/email-template', payload);
+        document.getElementById('etResult').textContent = data.content || '';
+    } catch (e) {
+        document.getElementById('etResult').textContent = 'Error: ' + e.message;
+    }
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

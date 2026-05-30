@@ -67,6 +67,7 @@ namespace JobCandidates
             builder.Services.AddScoped<IRankingService, RankingService>();
             builder.Services.AddHttpClient<IEmbeddingService, OpenAiEmbeddingService>();
             builder.Services.AddScoped<IRankingServiceV2, RankingServiceV2>();
+            builder.Services.AddHttpClient<IAssistantService, OpenAIAssistantService>();
             builder.Services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
             builder.Services.AddScoped<IJobRepository, JobRepository>();
             builder.Services.AddScoped<IEmailService, SmtpEmailService>();
