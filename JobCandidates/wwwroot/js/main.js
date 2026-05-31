@@ -222,6 +222,16 @@ function renderRankingV2(result) {
 }
 
 function initRankingPage() {
+
+    const questionBtn = document.getElementById('btnGenerateQuestions');
+    const explainBtn = document.getElementById('btnExplainRanking');
+    const emailBtn = document.getElementById('btnGenerateEmail');
+
+    if (questionBtn) questionBtn.addEventListener('click', generateQuestions);
+    if (explainBtn) explainBtn.addEventListener('click', explainRanking);
+    if (emailBtn) emailBtn.addEventListener('click', generateEmailTemplate);
+
+
     const form = document.getElementById('rankingForm');
     const refreshBtn = document.getElementById('btnRefreshRanking');
     const input = document.getElementById('rankingJobId');
