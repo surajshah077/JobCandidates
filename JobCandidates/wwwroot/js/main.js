@@ -1,5 +1,4 @@
 ﻿const API_BASE = window.location.origin + "/api";
-
 let currentUser = null;
 let currentRankingJobId = null;
 let currentRankingVersion = 'v1';
@@ -32,7 +31,6 @@ function updateAuthStatus() {
     const title = status.querySelector('strong');
     const emailEl = document.getElementById('currentUserEmail');
     const roleEl = document.getElementById('currentUserRole');
-
     if (currentUser) {
         status.classList.remove('alert-info');
         status.classList.add('alert-success');
@@ -59,65 +57,61 @@ async function apiRequest(method, path, body = null) {
         credentials: 'include',
         body: body ? JSON.stringify(body) : null
     });
-
     let data = null;
     let rawText = '';
-    try {
-        rawText = await response.text();
-        data = rawText ? JSON.parse(rawText) : null;
-    } catch {
-        data = rawText || null;
-    }
-
-    if (response.status === 401) {
-        currentUser = null;
-        updateAuthStatus();
-        throw new Error(data?.message || 'You must login first.');
-    }
-
-    if (response.status === 403) {
-        throw new Error(data?.message || 'You are not allowed to do this action.');
-    }
-
+    try { rawText = await response.text(); data = rawText ? JSON.parse(rawText) : null; } catch { data = rawText || null; }
+    if (response.status === 401) { currentUser = null; updateAuthStatus(); throw new Error(data?.message || 'You must login first.'); }
+    if (response.status === 403) throw new Error(data?.message || 'You are not allowed to do this action.');
     if (!response.ok) {
         if (data?.message) throw new Error(data.message);
         if (data?.title) throw new Error(data.title);
         if (data?.errors) {
-            const details = Object.entries(data.errors)
-                .map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`)
-                .join(' | ');
+            const details = Object.entries(data.errors).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join(' | ');
             throw new Error(details);
         }
         throw new Error(typeof data === 'string' && data ? data : `Request failed with status ${response.status}`);
     }
-
     return data;
 }
 
 async function loadCurrentUser() {
-    try {
-        currentUser = await apiRequest('GET', '/auth/me');
-    } catch {
-        currentUser = null;
-    }
+    try { currentUser = await apiRequest('GET', '/auth/me'); } catch { currentUser = null; }
     updateAuthStatus();
 }
 
 function disableButton(button, disabled, loadingText = 'Please wait...') {
     if (!button) return;
-    if (disabled) {
-        button.dataset.originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span>${loadingText}`;
-    } else {
-        button.disabled = false;
-        button.innerHTML = button.dataset.originalText || button.innerHTML;
-    }
+    if (disabled) { button.dataset.originalText = button.innerHTML; button.disabled = true; button.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span>${loadingText}`; }
+    else { button.disabled = false; button.innerHTML = button.dataset.originalText || button.innerHTML; }
 }
 
+function safeFormHandler(formId, buttonId, handler, loadingText = 'Please wait...') {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const button = document.getElementById(buttonId);
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try { disableButton(button, true, loadingText); await handler(e); }
+        catch (err) { showMessage('danger', err.message || 'Something went wrong.', 7000); }
+        finally { disableButton(button, false); }
+    });
+    form.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.tagName.toLowerCase() !== 'textarea') e.preventDefault(); });
+}
+
+function initAuthPage() {
+    const logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); try { await apiRequest('POST', '/auth/logout'); } catch {} currentUser = null; updateAuthStatus(); showMessage('info', 'Logged out successfully.', 3000); });
+}
+
+function initJobsPage() {}
+function initCandidatesPage() {}
+function initApplicationsPage() {}
+function initInterviewsPage() {}
+function initAnalyticsPage() {}
+
 function getRankingMode() {
-    const v2 = document.getElementById('rankingV2');
-    return v2 && v2.checked ? 'v2' : 'v1';
+    return document.getElementById('rankingV2')?.checked ? 'v2' : 'v1';
 }
 
 function updateApiVersionBadge(mode) {
@@ -140,12 +134,10 @@ function renderRankingV1(rows) {
     const tableBody = document.querySelector('#rankingTable tbody');
     if (!tableBody) return;
     tableBody.innerHTML = '';
-
     if (!Array.isArray(rows) || rows.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No ranked candidates found.</td></tr>`;
         return;
     }
-
     rows.forEach((c, index) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -174,69 +166,104 @@ function renderRankingV2(result) {
 
     rows.forEach(c => {
         const b = c.breakdown || {};
-        const semantic = typeof b.semanticScore === 'number' ? (b.semanticScore * 100).toFixed(1) : '0.0';
+
+        const semanticPercent = typeof b.semanticScore === 'number'
+            ? (b.semanticScore * 100).toFixed(1)
+            : '0.0';
+
+        const ruleScore = b.ruleBasedScore ?? 0;
+        const skillScore = b.skillScore ?? null;
+        const experienceScore = b.experienceScore ?? null;
+        const locationScore = b.locationScore ?? null;
+        const locationMatch = b.isLocationMatch === true;
+
+        const ruleParts = [];
+        if (skillScore !== null) ruleParts.push(`Skills: ${skillScore}`);
+        if (experienceScore !== null) ruleParts.push(`Exp: ${experienceScore}`);
+        if (locationScore !== null) ruleParts.push(`Loc: ${locationScore}`);
+        const ruleBreakdown = ruleParts.join(', ');
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${escapeHtml(c.rank ?? '')}</td>
             <td>${escapeHtml(c.candidateId ?? '')}</td>
-            <td>${escapeHtml(c.candidateName ?? '')}</td>
+            <td>
+                <strong>${escapeHtml(c.candidateName ?? '')}</strong>
+                ${c.email ? `<br><small class="text-muted">${escapeHtml(c.email)}</small>` : ''}
+                ${c.location ? `<br><small class="text-muted">Location: ${escapeHtml(c.location)}</small>` : ''}
+            </td>
             <td>${escapeHtml(c.experienceYears ?? 0)}</td>
-            <td><span class="badge bg-success">${escapeHtml(b.combinedScore ?? 0)}</span></td>
+            <td>
+                <span class="badge bg-success">${escapeHtml(b.combinedScore ?? 0)}</span>
+                <br>
+                <small class="text-muted">
+                    Rule: ${escapeHtml(ruleScore)}${ruleBreakdown ? ` (${escapeHtml(ruleBreakdown)})` : ''}<br>
+                    AI: ${escapeHtml(semanticPercent)}%
+                </small>
+            </td>
             <td>${escapeHtml(b.matchedSkillCount ?? 0)}/${escapeHtml(b.totalRequiredSkills ?? 0)}</td>
-            <td>${escapeHtml(semantic)}%</td>
+            <td>
+                ${escapeHtml(semanticPercent)}%
+                ${locationMatch ? `<br><small class="text-success">Location match</small>` : ''}
+            </td>
         `;
         tableBody.appendChild(tr);
+
+        if (c.explanation) {
+            const expl = document.createElement('tr');
+            expl.innerHTML = `
+                <td colspan="7" class="bg-light">
+                    <small><strong>Explanation:</strong> ${escapeHtml(c.explanation)}</small>
+                </td>
+            `;
+            tableBody.appendChild(expl);
+        }
     });
 }
 
-async function loadRanking(jobId, version = 'v1') {
-    const summary = document.getElementById('rankingSummary');
-    const v2Card = document.getElementById('v2JobInfoCard');
-    const tableBody = document.querySelector('#rankingTable tbody');
-    if (!tableBody) return;
+function initRankingPage() {
+    const form = document.getElementById('rankingForm');
+    const refreshBtn = document.getElementById('btnRefreshRanking');
+    const input = document.getElementById('rankingJobId');
+    const btnLoad = document.getElementById('btnLoadRanking');
+    const v1 = document.getElementById('rankingV1');
+    const v2 = document.getElementById('rankingV2');
 
-    setRankingHeader(version);
-    updateApiVersionBadge(version);
+    if (v1 && v2) {
+        const sync = () => {
+            currentRankingVersion = getRankingMode();
+            updateApiVersionBadge(currentRankingVersion);
+            setRankingHeader(currentRankingVersion);
+        };
+        v1.addEventListener('change', sync);
+        v2.addEventListener('change', sync);
+        sync();
+    }
 
-    if (v2Card) v2Card.classList.add('d-none');
-    if (summary) summary.classList.add('d-none');
-
-    tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading ranking...</td></tr>`;
-
-    try {
-        if (version === 'v2') {
-            const result = await apiRequest('GET', `/ranking/v2/${jobId}`);
-            renderRankingV2(result);
-
-            if (v2Card) {
-                const jobIdEl = document.getElementById('v2JobId');
-                const titleEl = document.getElementById('v2JobTitle');
-                const skillsEl = document.getElementById('v2RequiredSkills');
-
-                if (jobIdEl) jobIdEl.textContent = result.jobId ?? jobId;
-                if (titleEl) titleEl.textContent = result.jobTitle ?? '-';
-                if (skillsEl) skillsEl.textContent = result.requiredSkills ?? '-';
-
-                v2Card.classList.remove('d-none');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const jobId = parseInt(input.value, 10);
+            if (!jobId || jobId <= 0) {
+                showMessage('warning', 'Please enter a valid Job ID (must be > 0).', 4000);
+                return;
             }
+            const version = getRankingMode();
+            currentRankingJobId = jobId;
+            currentRankingVersion = version;
+            disableButton(btnLoad, true, 'Loading...');
+            try { await loadRanking(jobId, version); } finally { disableButton(btnLoad, false); }
+        });
+    }
 
-            if (summary && result?.rankedCandidates?.length) {
-                summary.classList.remove('d-none');
-                summary.innerHTML = `<strong>Job ID ${escapeHtml(jobId)}</strong> [V2] — ${escapeHtml(result.rankedCandidates.length)} candidates ranked.`;
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+            if (!currentRankingJobId) {
+                showMessage('info', 'Enter a Job ID first.', 4000);
+                return;
             }
-        } else {
-            const result = await apiRequest('GET', `/ranking/job/${jobId}`);
-            renderRankingV1(result);
-
-            if (summary && result?.length) {
-                summary.classList.remove('d-none');
-                summary.innerHTML = `<strong>Job ID ${escapeHtml(jobId)}</strong> [V1] — ${escapeHtml(result.length)} candidates ranked.`;
-            }
-        }
-    } catch (err) {
-        tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Failed to load ranking: ${escapeHtml(err.message)}</td></tr>`;
-        showMessage('danger', 'Failed to load ranking: ' + err.message, 7000);
+            await loadRanking(currentRankingJobId, currentRankingVersion);
+        });
     }
 }
 
@@ -247,12 +274,8 @@ async function postJson(url, data) {
         credentials: 'include',
         body: JSON.stringify(data)
     });
-
     let payload = null;
-    try {
-        payload = await res.json();
-    } catch { }
-
+    try { payload = await res.json(); } catch {}
     if (!res.ok) throw new Error(payload?.message || payload?.title || `HTTP ${res.status}`);
     return payload;
 }
@@ -310,76 +333,14 @@ async function generateEmailTemplate() {
     }
 }
 
-function initAuthPage() {
-    const logoutBtn = document.getElementById('btnLogout');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            try { await apiRequest('POST', '/auth/logout'); } catch { }
-            currentUser = null;
-            updateAuthStatus();
-            showMessage('info', 'Logged out successfully.', 3000);
-        });
-    }
-}
-
-function initRankingPage() {
-    const form = document.getElementById('rankingForm');
-    const refreshBtn = document.getElementById('btnRefreshRanking');
-    const input = document.getElementById('rankingJobId');
-    const btnLoad = document.getElementById('btnLoadRanking');
-    const v1 = document.getElementById('rankingV1');
-    const v2 = document.getElementById('rankingV2');
-
-    if (v1 && v2) {
-        const sync = () => {
-            currentRankingVersion = getRankingMode();
-            updateApiVersionBadge(currentRankingVersion);
-            setRankingHeader(currentRankingVersion);
-        };
-        v1.addEventListener('change', sync);
-        v2.addEventListener('change', sync);
-        sync();
-    }
-
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const jobId = parseInt(input.value, 10);
-            if (!jobId || jobId <= 0) {
-                showMessage('warning', 'Please enter a valid Job ID (must be > 0).', 4000);
-                return;
-            }
-            const version = getRankingMode();
-            currentRankingJobId = jobId;
-            currentRankingVersion = version;
-            disableButton(btnLoad, true, 'Loading...');
-            try { await loadRanking(jobId, version); } finally { disableButton(btnLoad, false); }
-        });
-    }
-
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            if (!currentRankingJobId) {
-                showMessage('info', 'Enter a Job ID first.', 4000);
-                return;
-            }
-            await loadRanking(currentRankingJobId, currentRankingVersion);
-        });
-    }
-
-    const questionBtn = document.getElementById('btnGenerateQuestions');
-    const explainBtn = document.getElementById('btnExplainRanking');
-    const emailBtn = document.getElementById('btnGenerateEmail');
-
-    if (questionBtn) questionBtn.addEventListener('click', generateQuestions);
-    if (explainBtn) explainBtn.addEventListener('click', explainRanking);
-    if (emailBtn) emailBtn.addEventListener('click', generateEmailTemplate);
-}
-
 function initMain() {
     initAuthPage();
+    initJobsPage();
+    initCandidatesPage();
+    initApplicationsPage();
+    initInterviewsPage();
     initRankingPage();
+    initAnalyticsPage();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

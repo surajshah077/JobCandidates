@@ -28,6 +28,10 @@ namespace JobCandidates.Model
         [MaxLength(500)]
         public string Skills { get; set; } = string.Empty;
 
+        // NEW: candidate location, used in rule-based location score
+        [MaxLength(200)]
+        public string Location { get; set; } = string.Empty;
+
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
         public List<Application>? Applications { get; set; }
