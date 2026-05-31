@@ -101,7 +101,58 @@ function safeFormHandler(formId, buttonId, handler, loadingText = 'Please wait..
 
 function initAuthPage() {
     const logoutBtn = document.getElementById('btnLogout');
-    if (logoutBtn) logoutBtn.addEventListener('click', async (e) => { e.preventDefault(); try { await apiRequest('POST', '/auth/logout'); } catch {} currentUser = null; updateAuthStatus(); showMessage('info', 'Logged out successfully.', 3000); });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try { await apiRequest('POST', '/auth/logout'); } catch { }
+            currentUser = null;
+            updateAuthStatus();
+            showMessage('info', 'Logged out successfully.', 3000);
+        });
+    }
+
+    safeFormHandler('registerForm', 'btnRegister', async (e) => {
+        const body = {
+            name: document.getElementById('registerName').value.trim(),
+            age: parseInt(document.getElementById('registerAge').value),
+            gender: document.getElementById('registerGender').value,
+            email: document.getElementById('registerEmail').value.trim(),
+            role: document.getElementById('registerRole').value
+        };
+        const result = await apiRequest('POST', '/auth/register', body);
+        document.getElementById('registerVerifyEmail').value = body.email;
+        showMessage('success', result.message || 'Registration OTP sent. Check your email.', 6000);
+    }, 'Sending OTP...');
+
+    safeFormHandler('registerVerifyForm', 'btnVerifyRegister', async (e) => {
+        const body = {
+            email: document.getElementById('registerVerifyEmail').value.trim(),
+            code: document.getElementById('registerOtpCode').value.trim()
+        };
+        const result = await apiRequest('POST', '/auth/verify-register-otp', body);
+        await loadCurrentUser();
+        showMessage('success', result.message || 'Account verified and logged in.', 4000);
+        e.target.reset();
+    }, 'Verifying...');
+
+    safeFormHandler('loginRequestForm', 'btnRequestLoginOtp', async () => {
+        const body = { email: document.getElementById('loginEmail').value.trim() };
+        const result = await apiRequest('POST', '/auth/request-login-otp', body);
+        document.getElementById('loginVerifyEmail').value = body.email;
+        showMessage('success', result.message || 'Login OTP sent. Check your email.', 6000);
+    }, 'Sending OTP...');
+
+    safeFormHandler('loginVerifyForm', 'btnVerifyLogin', async (e) => {
+        const body = {
+            email: document.getElementById('loginVerifyEmail').value.trim(),
+            code: document.getElementById('loginOtpCode').value.trim()
+        };
+        const result = await apiRequest('POST', '/auth/verify-login-otp', body);
+        await loadCurrentUser();
+        showMessage('success', result.message || 'Logged in successfully.', 4000);
+        e.target.reset();
+        setTimeout(() => { window.location.href = 'jobs.html'; }, 900);
+    }, 'Logging in...');
 }
 
 function initJobsPage() {}
