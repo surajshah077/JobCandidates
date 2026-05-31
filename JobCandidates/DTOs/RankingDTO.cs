@@ -6,6 +6,7 @@
         public string CandidateName { get; set; } = string.Empty;
         public int ExperienceYears { get; set; }
         public int SkillMatchScore { get; set; }
+        public int ExperienceScore { get; set; }
         public int TotalScore { get; set; }
     }
 

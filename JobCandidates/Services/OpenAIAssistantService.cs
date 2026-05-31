@@ -21,9 +21,10 @@ namespace JobCandidates.Services
 
         public Task<string> GenerateInterviewQuestionsAsync(GenerateQuestionsRequestDto request)
         {
+            var uniqueSeed = DateTime.UtcNow.Ticks % 10000;
             string prompt = $"""
-You are an expert technical recruiter.
-Generate 5 tailored interview questions for this candidate and role.
+You are an expert technical recruiter. Generate 5 UNIQUE and SPECIFIC interview questions.
+Seed variation: {uniqueSeed}
 
 Job Title: {request.JobTitle}
 Job Description: {request.JobDescription}
@@ -33,9 +34,11 @@ Candidate Skills: {request.CandidateSkills}
 Experience Years: {request.ExperienceYears}
 
 Rules:
-- Make the questions specific and practical.
-- Mix technical, behavioral, and experience-based questions.
-- Return only the questions in a numbered list.
+- Each question must be tailored to this specific candidate's background vs. the job requirements.
+- Identify GAPS between candidate skills and required skills, and probe those gaps.
+- Mix: 2 technical deep-dives, 1 behavioral, 1 experience-based, 1 situational.
+- DO NOT use generic questions like "tell me about yourself".
+- Return only numbered questions.
 """;
             return SendPromptAsync(prompt, AssistantTaskType.Questions);
         }

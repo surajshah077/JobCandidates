@@ -399,9 +399,9 @@ async function loadApplications() {
         apps.forEach(a => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${a.id}</td>
-                <td>${a.candidateId}</td>
-                <td>${a.jobId}</td>
+              <td>${a.id}</td>
+    <td>${escapeHtml(a.candidate?.name ?? 'Candidate #' + a.candidateId)}</td>
+    <td>${escapeHtml(a.job?.title ?? 'Job #' + a.jobId)}</td>
                 <td><span class="badge bg-primary">${a.status ?? ''}</span></td>
                 <td>
                     <button class="btn btn-sm btn-outline-warning me-1" onclick="updateApplicationStatus(${a.id})">Update Status</button>
@@ -452,14 +452,21 @@ function initApplicationsPage() {
 // Cache application -> candidate name mapping
 const _appCandidateCache = {};
 
-async function getCandidateNameForApplication(appId) {
-    if (_appCandidateCache[appId]) return _appCandidateCache[appId];
+// Replace getCandidateNameForApplication entirely:
+async function getCandidateNameForApplication(appId, candidateId) {
+    const key = `app_${appId}`;
+    if (_appCandidateCache[key]) return _appCandidateCache[key];
     try {
-        const app = await apiRequest('GET', `/applications/${appId}`);
-        const name = await getCandidateName(app.candidateId);
-        _appCandidateCache[appId] = name;
-    } catch { _appCandidateCache[appId] = `App #${appId}`; }
-    return _appCandidateCache[appId];
+        // If candidateId already passed in (from the interview object), use it
+        const id = candidateId ?? (await apiRequest('GET', `/applications/${appId}`)).candidateId;
+        const candidate = await apiRequest('GET', `/candidates/${id}`);
+        const label = `${candidate.name} (#${id})`;
+        _appCandidateCache[key] = label;
+        return label;
+    } catch {
+        _appCandidateCache[key] = `Candidate (App #${appId})`;
+        return _appCandidateCache[key];
+    }
 }
 
 async function loadInterviews() {
